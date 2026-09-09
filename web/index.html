@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Playground local para observar threads Python em execução.">
+    <title>Laboratório do Escalonador</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <main class="laboratorio">
+      <header class="masthead">
+        <p class="eyebrow">PYTHON / CONCORRÊNCIA / OBSERVAÇÃO</p>
+        <div class="masthead-row">
+          <div>
+            <h1>Laboratório do<br><em>Escalonador</em></h1>
+            <p class="intro">Entregue palavras ordenadas a várias threads e observe a ordem global se desfazer — sem perder nenhuma delas.</p>
+          </div>
+          <aside class="aviso">
+            <span class="lamp" aria-hidden="true"></span>
+            <strong>O que varia?</strong>
+            <p>O instante em que cada thread termina. O lock protege a lista; ele não escolhe quem chega primeiro.</p>
+          </aside>
+        </div>
+      </header>
+
+      <section class="painel controle" aria-labelledby="titulo-experimento">
+        <div class="section-heading">
+          <p class="section-number">01</p>
+          <h2 id="titulo-experimento">Monte uma rodada</h2>
+        </div>
+        <div class="controles-grid">
+          <label class="campo texto-campo">
+            <span>Frase distribuída em blocos</span>
+            <textarea id="texto" rows="3">Threads começam com blocos ordenados, mas cada palavra termina em um instante diferente e a frase chega embaralhada.</textarea>
+          </label>
+          <div class="controles-numericos">
+            <label class="campo">
+              <span>Quantidade de threads <output id="threads-output">4</output></span>
+              <input id="threads" type="range" min="1" max="64" value="4">
+              <small>1 <b aria-hidden="true">··················</b> 64</small>
+            </label>
+            <label class="campo">
+              <span>Atraso mínimo <output id="min-output">25 ms</output></span>
+              <input id="delay-min" type="range" min="0" max="500" value="25">
+            </label>
+            <label class="campo">
+              <span>Atraso máximo <output id="max-output">100 ms</output></span>
+              <input id="delay-max" type="range" min="0" max="500" value="100">
+            </label>
+          </div>
+        </div>
+        <div class="acoes">
+          <button id="run-button" class="botao-principal" type="button">Disparar threads <span aria-hidden="true">↗</span></button>
+          <button id="cancel-button" class="botao-secundario" type="button" disabled>Cancelar rodada</button>
+          <p id="status" class="status" role="status" aria-live="polite">Ajuste os controles e inicie o experimento.</p>
+        </div>
+      </section>
+
+      <section class="painel observatorio" aria-labelledby="titulo-observatorio">
+        <div class="section-heading">
+          <p class="section-number">02</p>
+          <h2 id="titulo-observatorio">Veja o escalonamento</h2>
+          <p class="legenda">Cada marca é uma palavra concluída. A posição horizontal é o tempo; a raia identifica a thread.</p>
+        </div>
+        <div id="alocacao" class="alocacao" aria-live="polite"></div>
+        <div class="timeline-shell">
+          <div id="timeline" class="timeline" aria-label="Timeline das conclusões por thread"></div>
+        </div>
+        <div class="chegada">
+          <p class="microtitulo">ORDEM DE CHEGADA <span>posição original →</span></p>
+          <ol id="ordem-chegada" class="ordem-chegada" aria-label="Palavras na ordem em que chegaram"></ol>
+        </div>
+      </section>
+
+      <section class="resultado-grid" aria-labelledby="titulo-resultado">
+        <div class="texto-comparado">
+          <div class="section-heading">
+            <p class="section-number">03</p>
+            <h2 id="titulo-resultado">Compare a frase</h2>
+          </div>
+          <div class="frases">
+            <article>
+              <p class="microtitulo">ORIGINAL / PEDIDO</p>
+              <p id="frase-original" class="frase">—</p>
+            </article>
+            <article class="final">
+              <p class="microtitulo">FINAL / CHEGADA</p>
+              <p id="frase-final" class="frase">As palavras aparecerão aqui.</p>
+            </article>
+          </div>
+        </div>
+        <aside class="placar" aria-live="polite">
+          <p class="microtitulo">LEITURA DA RODADA</p>
+          <dl>
+            <div><dt>tempo total</dt><dd id="metric-time">—</dd></div>
+            <div><dt>pares invertidos</dt><dd id="metric-inversions">—</dd></div>
+            <div><dt>desordem Kendall</dt><dd id="metric-kendall">—</dd></div>
+          </dl>
+          <p id="interpretacao" class="interpretacao">A primeira medição aparecerá ao final da rodada.</p>
+        </aside>
+      </section>
+
+      <section class="painel comparador" aria-labelledby="titulo-comparador">
+        <div class="section-heading">
+          <p class="section-number">04</p>
+          <h2 id="titulo-comparador">Repita em outras escalas</h2>
+          <p class="legenda">As configurações são executadas em série. Os pontos mostram cada tentativa; a linha, a média.</p>
+        </div>
+        <div class="compare-controls">
+          <fieldset>
+            <legend>Threads comparadas</legend>
+            <div id="thread-counts" class="checks"></div>
+          </fieldset>
+          <label class="campo repeticoes">
+            <span>Repetições</span>
+            <input id="repetitions" type="number" min="1" max="10" value="3">
+          </label>
+          <button id="compare-button" class="botao-principal" type="button">Comparar escalas <span aria-hidden="true">↗</span></button>
+          <p id="compare-status" class="status" role="status" aria-live="polite">Use a frase e os atrasos atuais como base.</p>
+        </div>
+        <div class="graficos">
+          <figure><figcaption>Tempo por rodada <small>média e tentativas, em ms</small></figcaption><canvas id="time-chart"></canvas></figure>
+          <figure><figcaption>Desordem por rodada <small>média e tentativas, em %</small></figcaption><canvas id="disorder-chart"></canvas></figure>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>threads</th><th>tempo médio</th><th>faixa</th><th>speedup</th><th>desordem média</th></tr></thead>
+            <tbody id="comparison-table"><tr><td colspan="5">A comparação aparecerá aqui.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer>
+        <p><strong>Nota de método.</strong> Esta é uma simulação de trabalho de espera/I/O. Ela ajuda a enxergar concorrência e não é um benchmark de tarefas CPU-bound em Python.</p>
+      </footer>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
