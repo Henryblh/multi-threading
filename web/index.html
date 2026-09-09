@@ -131,6 +131,34 @@
         </div>
       </section>
 
+      <section class="painel comparador" aria-labelledby="titulo-grade">
+        <div class="section-heading">
+          <p class="section-number">05</p>
+          <h2 id="titulo-grade">Comprimento × threads</h2>
+          <p class="legenda">Para cada comprimento gera um texto sintético e mede o tempo com cada quantidade de threads. Cada linha do gráfico é uma quantidade de threads.</p>
+        </div>
+        <div class="compare-controls">
+          <label class="campo texto-campo">
+            <span>Comprimentos (nº de palavras, separados por vírgula)</span>
+            <input id="grid-lengths" type="text" value="10, 25, 50, 100, 250, 500">
+          </label>
+          <fieldset>
+            <legend>Threads comparadas</legend>
+            <div id="grid-thread-counts" class="checks"></div>
+          </fieldset>
+          <label class="campo repeticoes">
+            <span>Repetições</span>
+            <input id="grid-repetitions" type="number" min="1" max="10" value="3">
+          </label>
+          <button id="grid-button" class="botao-principal" type="button">Comparar comprimentos <span aria-hidden="true">↗</span></button>
+          <p id="grid-status" class="status" role="status" aria-live="polite">Usa os atrasos configurados na seção 01. O texto é gerado automaticamente para cada comprimento.</p>
+        </div>
+        <div class="graficos unico">
+          <figure><figcaption>Tempo por comprimento <small>uma linha por quantidade de threads, em ms</small></figcaption><canvas id="grid-chart"></canvas></figure>
+        </div>
+        <div id="grid-legend" class="legenda-cores"></div>
+      </section>
+
       <footer>
         <p><strong>Nota de método.</strong> Esta é uma simulação de trabalho de espera/I/O. Ela ajuda a enxergar concorrência e não é um benchmark de tarefas CPU-bound em Python.</p>
       </footer>

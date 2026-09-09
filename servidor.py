@@ -15,7 +15,14 @@ import threading
 from typing import Any
 from urllib.parse import urlparse
 
-from threads_core import Configuracao, ConfiguracaoInvalida, configuracao_de_dict, executar
+from threads_core import (
+    Configuracao,
+    ConfiguracaoInvalida,
+    configuracao_de_dict,
+    executar,
+    gerar_texto,
+    grade_de_dict,
+)
 
 
 RAIZ = Path(__file__).parent
@@ -92,6 +99,8 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
             elif caminho == "/api/compare":
                 configuracao = configuracao_de_dict(dados)
                 self._stream_comparacao(configuracao, dados)
+            elif caminho == "/api/compare-grid":
+                self._stream_grade(dados)
             else:
                 self._json(HTTPStatus.NOT_FOUND, {"error": "Rota não encontrada."})
         except ConfiguracaoInvalida as erro:
@@ -211,6 +220,92 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
                 fila.put(None)
 
         worker = threading.Thread(target=rodar, daemon=True, name="comparacao-api")
+        worker.start()
+        self._iniciar_ndjson()
+        try:
+            while True:
+                item = fila.get()
+                if item is None:
+                    break
+                self._enviar_linha(item)
+        except (BrokenPipeError, ConnectionResetError):
+            cancelar.set()
+        finally:
+            cancelar.set()
+            worker.join()
+
+
+    def _stream_grade(self, dados: dict) -> None:
+        """Mede o tempo para cada combinação (comprimento do texto x quantidade de threads).
+
+        Ao contrário de /api/compare, aqui o texto muda a cada rodada: é gerado
+        sinteticamente a partir do vocabulário de exemplo para atingir o número de
+        palavras pedido, já que o objetivo é isolar o efeito do comprimento.
+        """
+        threads_lista, comprimentos, repeticoes = grade_de_dict(dados)
+
+        atraso_min = dados.get("delay_min_ms", 25)
+        atraso_max = dados.get("delay_max_ms", 100)
+        if (
+            isinstance(atraso_min, bool)
+            or isinstance(atraso_max, bool)
+            or not isinstance(atraso_min, int)
+            or not isinstance(atraso_max, int)
+            or not 0 <= atraso_min <= 500
+            or not 0 <= atraso_max <= 500
+            or atraso_min > atraso_max
+        ):
+            raise ConfiguracaoInvalida("Os atrasos devem estar entre 0 e 500 ms.")
+
+        fila: Queue[dict | None] = Queue()
+        cancelar = threading.Event()
+
+        def rodar() -> None:
+            resultados = []
+            total = len(threads_lista) * len(comprimentos) * repeticoes
+            feito = 0
+            try:
+                for comprimento in comprimentos:
+                    texto = gerar_texto(comprimento)
+                    for quantidade in threads_lista:
+                        if cancelar.is_set():
+                            return
+                        tentativas = []
+                        for repeticao in range(repeticoes):
+                            if cancelar.is_set():
+                                return
+                            item = executar(
+                                Configuracao(texto, quantidade, atraso_min, atraso_max),
+                                cancelar=cancelar,
+                            )
+                            feito += 1
+                            tentativa = {"duration_ms": item["duration_ms"]}
+                            tentativas.append(tentativa)
+                            fila.put({
+                                "type": "progress", "done": feito, "total": total,
+                                "length": comprimento, "threads": quantidade,
+                                "repetition": repeticao + 1, "trial": tentativa,
+                            })
+                        tempos = [item["duration_ms"] for item in tentativas]
+                        resultados.append({
+                            "length": comprimento,
+                            "threads": quantidade,
+                            "trials": tentativas,
+                            "mean_duration_ms": sum(tempos) / len(tempos),
+                        })
+                fila.put({
+                    "type": "grid",
+                    "results": resultados,
+                    "lengths": comprimentos,
+                    "threads": threads_lista,
+                    "repetitions": repeticoes,
+                })
+            except Exception as erro:
+                fila.put({"type": "error", "error": str(erro)})
+            finally:
+                fila.put(None)
+
+        worker = threading.Thread(target=rodar, daemon=True, name="grade-api")
         worker.start()
         self._iniciar_ndjson()
         try:

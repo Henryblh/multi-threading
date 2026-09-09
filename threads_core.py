@@ -64,6 +64,52 @@ def desordem_kendall(ordem: list[int]) -> float:
     return pares_fora_de_ordem(ordem) / (len(ordem) * (len(ordem) - 1) / 2)
 
 
+def gerar_texto(quantidade_palavras: int, palavras_base: list[str] | None = None) -> str:
+    """Gera um texto com o número de palavras pedido, repetindo o vocabulário base.
+
+    Usado pela comparação em grade (threads x comprimento), onde precisamos de
+    textos de tamanhos diferentes sem depender do que a pessoa digitou.
+    """
+    base = palavras_base or TEXTO_EXEMPLO.split()
+    if quantidade_palavras <= 0:
+        return ""
+    repeticoes = quantidade_palavras // len(base) + 1
+    return " ".join((base * repeticoes)[:quantidade_palavras])
+
+
+def grade_de_dict(dados: dict) -> tuple[list[int], list[int], int]:
+    """Valida a entrada do endpoint que cruza quantidade de threads e comprimento do texto."""
+    if not isinstance(dados, dict):
+        raise ConfiguracaoInvalida("O corpo precisa ser um objeto JSON.")
+
+    def lista_inteiros(nome: str, minimo: int, maximo: int, limite_itens: int) -> list[int]:
+        valores = dados.get(nome)
+        if (
+            not isinstance(valores, list)
+            or not valores
+            or len(valores) > limite_itens
+            or any(
+                isinstance(valor, bool) or not isinstance(valor, int) or not minimo <= valor <= maximo
+                for valor in valores
+            )
+        ):
+            raise ConfiguracaoInvalida(
+                f"Escolha de 1 a {limite_itens} valores de {nome} entre {minimo} e {maximo}."
+            )
+        if len(set(valores)) != len(valores):
+            raise ConfiguracaoInvalida(f"Os valores de {nome} devem ser únicos.")
+        return sorted(valores)
+
+    threads = lista_inteiros("threads", 1, 64, 12)
+    comprimentos = lista_inteiros("lengths", 1, 2000, 12)
+
+    repeticoes = dados.get("repetitions", 3)
+    if isinstance(repeticoes, bool) or not isinstance(repeticoes, int) or not 1 <= repeticoes <= 10:
+        raise ConfiguracaoInvalida("Escolha entre 1 e 10 repetições.")
+
+    return threads, comprimentos, repeticoes
+
+
 def configuracao_de_dict(dados: dict) -> Configuracao:
     """Converte e valida o formato de entrada aceito pelo servidor."""
     if not isinstance(dados, dict):

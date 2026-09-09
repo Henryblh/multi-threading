@@ -3,11 +3,13 @@
 
   const $ = (id) => document.getElementById(id);
   const colors = ["#1f91c8", "#fd5d42", "#7652c6", "#278560", "#ba6a15", "#485cce", "#ad3e78", "#566c33"];
-  const state = { controller: null, run: null, comparison: null };
+  const state = { controller: null, run: null, comparison: null, grid: null };
   const controls = {
     text: $("texto"), threads: $("threads"), min: $("delay-min"), max: $("delay-max"),
     run: $("run-button"), cancel: $("cancel-button"), status: $("status"),
-    compare: $("compare-button"), compareStatus: $("compare-status"), repetitions: $("repetitions")
+    compare: $("compare-button"), compareStatus: $("compare-status"), repetitions: $("repetitions"),
+    gridLengths: $("grid-lengths"), gridRepetitions: $("grid-repetitions"),
+    gridButton: $("grid-button"), gridStatus: $("grid-status")
   };
 
   function cor(threadId) { return colors[threadId % colors.length]; }
@@ -28,8 +30,8 @@
   }
   [controls.threads, controls.min, controls.max].forEach((input) => input.addEventListener("input", atualizarSaidas));
 
-  function criarContagens() {
-    const host = $("thread-counts");
+  function criarContagens(hostId) {
+    const host = $(hostId);
     [1, 2, 4, 8, 16, 32].forEach((count) => {
       const label = document.createElement("label");
       const input = document.createElement("input");
@@ -267,13 +269,119 @@
     }
   }
 
+  function desenharGrade(resultado) {
+    state.grid = resultado;
+    const { results, lengths, threads } = resultado;
+    const canvas = $("grid-chart");
+    const { context: ctx, width, height } = prepararCanvas(canvas);
+    ctx.clearRect(0, 0, width, height);
+    if (!results || !results.length) return;
+    const pad = { left: 46, right: 15, top: 15, bottom: 30 };
+    const maxY = Math.max(1, ...results.map((item) => item.mean_duration_ms)) * 1.12;
+    const x = (i) => pad.left + (lengths.length === 1 ? (width - pad.left - pad.right) / 2 : i * (width - pad.left - pad.right) / (lengths.length - 1));
+    const y = (value) => height - pad.bottom - (value / maxY) * (height - pad.top - pad.bottom);
+    ctx.strokeStyle = "#d8d3c4"; ctx.lineWidth = 1;
+    for (let line = 0; line <= 4; line += 1) {
+      const yy = pad.top + line * (height - pad.top - pad.bottom) / 4;
+      ctx.beginPath(); ctx.moveTo(pad.left, yy); ctx.lineTo(width - pad.right, yy); ctx.stroke();
+      ctx.fillStyle = "#667077"; ctx.font = "10px Courier New"; ctx.fillText((maxY * (4 - line) / 4).toFixed(0), 2, yy + 3);
+    }
+    threads.forEach((threadCount, serie) => {
+      const pontos = lengths.map((comprimento) => {
+        const item = results.find((r) => r.length === comprimento && r.threads === threadCount);
+        return item ? item.mean_duration_ms : null;
+      });
+      ctx.strokeStyle = cor(serie); ctx.lineWidth = 2;
+      ctx.beginPath();
+      let comecou = false;
+      pontos.forEach((valor, i) => {
+        if (valor === null) return;
+        if (!comecou) { ctx.moveTo(x(i), y(valor)); comecou = true; } else { ctx.lineTo(x(i), y(valor)); }
+      });
+      ctx.stroke();
+      pontos.forEach((valor, i) => {
+        if (valor === null) return;
+        ctx.fillStyle = cor(serie);
+        ctx.beginPath(); ctx.arc(x(i), y(valor), 3.5, 0, Math.PI * 2); ctx.fill();
+      });
+    });
+    ctx.fillStyle = "#172127"; ctx.font = "10px Courier New"; ctx.textAlign = "center";
+    lengths.forEach((comprimento, i) => ctx.fillText(comprimento + "p", x(i), height - 10));
+    ctx.textAlign = "start";
+  }
+
+  function renderGridLegend(threads) {
+    const host = $("grid-legend"); host.replaceChildren();
+    threads.forEach((threadCount, index) => {
+      const span = document.createElement("span");
+      span.style.setProperty("--cor", cor(index));
+      span.textContent = threadCount + " threads";
+      host.append(span);
+    });
+  }
+
+  async function iniciarGrade() {
+    const comprimentos = controls.gridLengths.value.split(",")
+      .map((valor) => Number(valor.trim()))
+      .filter((valor) => Number.isInteger(valor) && valor > 0);
+    if (!comprimentos.length) {
+      controls.gridStatus.textContent = "Informe ao menos um comprimento válido, em palavras.";
+      return;
+    }
+    const threadsSelecionadas = [...document.querySelectorAll("#grid-thread-counts input:checked")]
+      .map((input) => Number(input.value)).sort((a, b) => a - b);
+    if (!threadsSelecionadas.length) {
+      controls.gridStatus.textContent = "Selecione ao menos uma quantidade de threads.";
+      return;
+    }
+    const repeticoes = Number(controls.gridRepetitions.value);
+    if (!Number.isInteger(repeticoes) || repeticoes < 1 || repeticoes > 10) {
+      controls.gridStatus.textContent = "Escolha entre 1 e 10 repetições.";
+      return;
+    }
+    if (state.controller) state.controller.abort();
+    const payload = {
+      lengths: comprimentos,
+      threads: threadsSelecionadas,
+      repetitions: repeticoes,
+      delay_min_ms: Number(controls.min.value),
+      delay_max_ms: Number(controls.max.value)
+    };
+    const controller = new AbortController(); state.controller = controller;
+    controls.gridButton.disabled = true; controls.run.disabled = true; controls.compare.disabled = true; controls.cancel.disabled = false;
+    const total = comprimentos.length * threadsSelecionadas.length * repeticoes;
+    controls.gridStatus.textContent = "Medindo 0 de " + total + " rodadas…";
+    try {
+      await consumirNDJSON("/api/compare-grid", payload, (record) => {
+        if (record.type === "progress") {
+          controls.gridStatus.textContent = "Medindo " + record.done + " de " + record.total + " · "
+            + record.length + " palavras, " + record.threads + " threads.";
+        }
+        if (record.type === "grid") {
+          desenharGrade(record);
+          renderGridLegend(record.threads);
+          controls.gridStatus.textContent = "Comparação concluída. Cada cor é uma quantidade de threads.";
+        }
+        if (record.type === "error") throw new Error(record.error);
+      }, controller.signal);
+    } catch (error) {
+      controls.gridStatus.textContent = error.name === "AbortError" ? "Comparação cancelada." : error.message;
+    } finally {
+      if (state.controller === controller) state.controller = null;
+      controls.gridButton.disabled = false; controls.run.disabled = false; controls.compare.disabled = false; controls.cancel.disabled = true;
+    }
+  }
+
   controls.run.addEventListener("click", iniciarRodada);
   controls.cancel.addEventListener("click", () => { if (state.controller) state.controller.abort(); });
   controls.compare.addEventListener("click", iniciarComparacao);
+  controls.gridButton.addEventListener("click", iniciarGrade);
   window.addEventListener("resize", () => {
     if (state.comparison) renderComparacao(state.comparison);
+    if (state.grid) desenharGrade(state.grid);
   });
-  criarContagens();
+  criarContagens("thread-counts");
+  criarContagens("grid-thread-counts");
   atualizarSaidas();
   limparRodada();
 })();
