@@ -7,13 +7,34 @@ import unittest
 from urllib.request import Request, urlopen
 
 from servidor import criar_servidor
-from threads_core import Configuracao, ConfiguracaoInvalida, configuracao_de_dict, desordem_kendall, dividir_indices, executar
+from threads_core import (
+    Configuracao,
+    ConfiguracaoInvalida,
+    configuracao_de_dict,
+    desordem_kendall,
+    dividir_indices,
+    executar,
+    reconstruir_marcadas,
+)
 
 
 class NucleoTests(unittest.TestCase):
     def test_divisao_cobre_cada_indice_uma_vez(self) -> None:
         blocos = dividir_indices(17, 4)
-        self.assertEqual([indice for bloco in blocos for indice in bloco], list(range(17)))
+        self.assertCountEqual([indice for bloco in blocos for indice in bloco], list(range(17)))
+
+    def test_divisao_em_rodizio(self) -> None:
+        self.assertEqual(dividir_indices(7, 3), [[0, 3, 6], [1, 4], [2, 5]])
+
+    def test_reconstroi_frases_fora_de_ordem(self) -> None:
+        chegada = [
+            "id2/palavra2/rede", "id1/palavra1/O", "id2/palavra1/A",
+            "id1/palavra3/preto", "id1/palavra2/gato",
+        ]
+        self.assertEqual(
+            reconstruir_marcadas(chegada),
+            {"id1": "O gato preto", "id2": "A rede"},
+        )
 
     def test_kendall_em_ordens_conhecidas(self) -> None:
         self.assertEqual(desordem_kendall([0, 1, 2, 3]), 0)
@@ -74,6 +95,21 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(len(eventos), 4)
         self.assertEqual(resumo["type"], "summary")
         self.assertCountEqual(resumo["order"], [0, 1, 2, 3])
+
+    def test_reconstruct_compara_uma_e_varias_threads(self) -> None:
+        lote = " ".join(
+            f"id{frase}/palavra{pos}/w{frase}{pos}"
+            for pos in range(1, 5) for frase in range(1, 5)
+        )
+        registros = self.post_stream("/api/reconstruct", {
+            "text": lote, "threads": 4, "delay_min_ms": 1, "delay_max_ms": 3,
+        })
+        corpo = registros[0]
+        self.assertEqual(corpo["single"]["threads"], 1)
+        self.assertEqual(corpo["multi"]["threads"], 4)
+        self.assertTrue(corpo["match"])
+        self.assertEqual(len(corpo["multi"]["sentences"]), 4)
+        self.assertLess(corpo["multi"]["duration_ms"], corpo["single"]["duration_ms"])
 
     def test_comparacao_retorna_agregados(self) -> None:
         registros = self.post_stream("/api/compare", {

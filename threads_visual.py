@@ -31,9 +31,10 @@ def visual_uma_rodada(num_threads: int) -> None:
     print(f"\\nTEXTO: {total} palavras   |   THREADS: {num_threads}")
     for thread_id, bloco in enumerate(blocos):
         if bloco:
+            posicoes = ", ".join(str(indice + 1) for indice in bloco)
             print(
-                f"  T{thread_id:<2} recebeu, em ordem, as palavras "
-                f"{bloco[0] + 1}..{bloco[-1] + 1}  ({len(bloco)})"
+                f"  T{thread_id:<2} recebeu, em rodizio, as palavras "
+                f"{posicoes}  ({len(bloco)})"
             )
         else:
             print(f"  T{thread_id:<2} recebeu (nada)")

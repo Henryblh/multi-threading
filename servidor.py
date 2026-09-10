@@ -22,6 +22,7 @@ from threads_core import (
     executar,
     gerar_texto,
     grade_de_dict,
+    reconstruir_marcadas,
 )
 
 
@@ -101,6 +102,8 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
                 self._stream_comparacao(configuracao, dados)
             elif caminho == "/api/compare-grid":
                 self._stream_grade(dados)
+            elif caminho == "/api/reconstruct":
+                self._reconstruir(dados)
             else:
                 self._json(HTTPStatus.NOT_FOUND, {"error": "Rota não encontrada."})
         except ConfiguracaoInvalida as erro:
@@ -319,6 +322,37 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
         finally:
             cancelar.set()
             worker.join()
+
+
+    def _reconstruir(self, dados: dict) -> None:
+        """Envia o mesmo lote endereçado com 1 thread e com várias, remonta as
+        frases pelas etiquetas id/posição e compara o tempo dos dois casos."""
+        configuracao = configuracao_de_dict(dados)
+        palavras = configuracao.palavras
+
+        def rodar(quantidade_threads: int) -> dict:
+            resultado = executar(Configuracao(
+                configuracao.texto, quantidade_threads,
+                configuracao.atraso_min_ms, configuracao.atraso_max_ms,
+            ))
+            chegada = [palavras[indice] for indice in resultado["order"]]
+            return {
+                "threads": quantidade_threads,
+                "duration_ms": resultado["duration_ms"],
+                "arrival": " ".join(chegada),
+                "sentences": reconstruir_marcadas(chegada),
+            }
+
+        alvo = configuracao.threads if configuracao.threads > 1 else 4
+        unico = rodar(1)
+        multi = rodar(alvo)
+        speedup = unico["duration_ms"] / multi["duration_ms"] if multi["duration_ms"] else 0
+        self._json(HTTPStatus.OK, {
+            "single": unico,
+            "multi": multi,
+            "speedup": speedup,
+            "match": unico["sentences"] == multi["sentences"],
+        })
 
 
 def criar_servidor(host: str = "127.0.0.1", porta: int = 8000) -> ThreadingHTTPServer:

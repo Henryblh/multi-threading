@@ -9,7 +9,7 @@ import time
 from typing import Callable
 
 
-TEXTO_EXEMPLO = "Threads começam com blocos ordenados, mas cada palavra termina em um instante diferente e a frase chega embaralhada."
+TEXTO_EXEMPLO = "Cada palavra vai para a proxima thread em rodizio e no fim o escalonador tenta remontar a frase na ordem certa."
 
 
 class ConfiguracaoInvalida(ValueError):
@@ -41,10 +41,16 @@ class Evento:
 
 
 def dividir_indices(total: int, quantidade_threads: int) -> list[list[int]]:
-    """Divide índices em blocos contíguos, inclusive quando há blocos vazios."""
-    passo = total / quantidade_threads
+    """Distribui os índices em rodízio (round-robin) pelas threads.
+
+    T0 fica com a 1ª palavra, T1 com a 2ª, ... e ao chegar na última thread
+    volta para a T0. Com 3 threads a divisão das palavras fica 1-2-3-1-2-3...,
+    de modo que, se cada thread respeitar o próprio ritmo, a frase tende a sair
+    montada na ordem certa em vez de embaralhada. Blocos vazios continuam
+    possíveis quando há mais threads do que palavras.
+    """
     return [
-        list(range(round(t * passo), round((t + 1) * passo)))
+        list(range(t, total, quantidade_threads))
         for t in range(quantidade_threads)
     ]
 
@@ -62,6 +68,27 @@ def desordem_kendall(ordem: list[int]) -> float:
     if len(ordem) < 2:
         return 0.0
     return pares_fora_de_ordem(ordem) / (len(ordem) * (len(ordem) - 1) / 2)
+
+
+def reconstruir_marcadas(tokens: list[str]) -> dict[str, str]:
+    """Remonta frases a partir de tokens no formato id{X}/palavra{N}/texto.
+
+    A ordem de chegada não importa: cada token carrega o próprio endereço
+    (qual frase e qual posição), então o receptor agrupa por id e ordena
+    pela posição — exatamente o que o TCP faz com número de sequência.
+    """
+    grupos: dict[str, list[tuple[int, str]]] = {}
+    for token in tokens:
+        partes = token.split("/", 2)
+        if len(partes) != 3:
+            continue
+        identificador, posicao, palavra = partes
+        digitos = "".join(caractere for caractere in posicao if caractere.isdigit())
+        grupos.setdefault(identificador, []).append((int(digitos or 0), palavra))
+    return {
+        identificador: " ".join(palavra for _, palavra in sorted(pares))
+        for identificador, pares in sorted(grupos.items())
+    }
 
 
 def gerar_texto(quantidade_palavras: int, palavras_base: list[str] | None = None) -> str:

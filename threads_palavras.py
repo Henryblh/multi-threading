@@ -31,10 +31,11 @@ def main() -> None:
         ao_evento=eventos.append,
     )
 
-    print(f"Texto com {len(palavras)} palavras, entregue EM ORDEM para {NUM_THREADS} threads:")
+    print(f"Texto com {len(palavras)} palavras, distribuido EM RODIZIO para {NUM_THREADS} threads:")
     for thread_id, bloco in enumerate(resultado["blocks"]):
         if bloco:
-            print(f"  T{thread_id} -> palavras {bloco[0] + 1}..{bloco[-1] + 1}")
+            posicoes = ", ".join(str(indice + 1) for indice in bloco)
+            print(f"  T{thread_id} -> palavras {posicoes}")
         else:
             print(f"  T{thread_id} -> (nada)")
     print("\\n--- as threads começaram juntas ---\\n")

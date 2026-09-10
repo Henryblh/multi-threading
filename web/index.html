@@ -14,7 +14,7 @@
         <div class="masthead-row">
           <div>
             <h1>Laboratório do<br><em>Escalonador</em></h1>
-            <p class="intro">Entregue palavras ordenadas a várias threads e observe a ordem global se desfazer — sem perder nenhuma delas.</p>
+            <p class="intro">Distribua as palavras em rodízio pelas threads (1-2-3-1-2-3…) e observe se o escalonador consegue remontar a frase na ordem certa.</p>
           </div>
           <aside class="aviso">
             <span class="lamp" aria-hidden="true"></span>
@@ -31,8 +31,8 @@
         </div>
         <div class="controles-grid">
           <label class="campo texto-campo">
-            <span>Frase distribuída em blocos</span>
-            <textarea id="texto" rows="3">Threads começam com blocos ordenados, mas cada palavra termina em um instante diferente e a frase chega embaralhada.</textarea>
+            <span>Frase distribuída em rodízio</span>
+            <textarea id="texto" rows="3">Cada palavra vai para a proxima thread em rodizio e no fim o escalonador tenta remontar a frase na ordem certa.</textarea>
           </label>
           <div class="controles-numericos">
             <label class="campo">
@@ -61,7 +61,7 @@
         <div class="section-heading">
           <p class="section-number">02</p>
           <h2 id="titulo-observatorio">Veja o escalonamento</h2>
-          <p class="legenda">Cada marca é uma palavra concluída. A posição horizontal é o tempo; a raia identifica a thread.</p>
+          <p class="legenda">Cada thread recebe posições alternadas (T0: 1ª, 4ª…; T1: 2ª, 5ª…). Cada marca é uma palavra concluída: a posição horizontal é o tempo; a raia identifica a thread.</p>
         </div>
         <div id="alocacao" class="alocacao" aria-live="polite"></div>
         <div class="timeline-shell">
@@ -157,6 +157,27 @@
           <figure><figcaption>Tempo por comprimento <small>uma linha por quantidade de threads, em ms</small></figcaption><canvas id="grid-chart"></canvas></figure>
         </div>
         <div id="grid-legend" class="legenda-cores"></div>
+      </section>
+
+      <section class="painel comparador" aria-labelledby="titulo-reconstrucao">
+        <div class="section-heading">
+          <p class="section-number">06</p>
+          <h2 id="titulo-reconstrucao">Enviar e remontar</h2>
+          <p class="legenda">Cada palavra leva o cabeçalho <code>idFrase/palavraN/texto</code>. Mandamos o mesmo lote com 1 thread e com várias, remontamos pelas etiquetas e comparamos o tempo.</p>
+        </div>
+        <div class="compare-controls">
+          <label class="campo texto-campo">
+            <span>Lote endereçado (4 frases intercaladas em rodízio)</span>
+            <textarea id="recon-texto" rows="4">id1/palavra1/O id2/palavra1/A id3/palavra1/Cada id4/palavra1/No id1/palavra2/gato id2/palavra2/rede id3/palavra2/thread id4/palavra2/final id1/palavra3/preto id2/palavra3/envia id3/palavra3/carrega id4/palavra3/tudo id1/palavra4/dormiu id2/palavra4/pacotes id3/palavra4/sua id4/palavra4/volta id1/palavra5/na id2/palavra5/numerados id3/palavra5/parte id4/palavra5/a id1/palavra6/cama id2/palavra6/sem id3/palavra6/da id4/palavra6/fazer id1/palavra7/velha id2/palavra7/ordem id3/palavra7/mensagem id4/palavra7/sentido</textarea>
+          </label>
+          <label class="campo repeticoes">
+            <span>Threads (contra 1)</span>
+            <input id="recon-threads" type="number" min="2" max="16" value="4">
+          </label>
+          <button id="recon-button" class="botao-principal" type="button">Enviar e remontar <span aria-hidden="true">↗</span></button>
+          <p id="recon-status" class="status" role="status" aria-live="polite">Usa os atrasos configurados na seção 01.</p>
+        </div>
+        <div id="recon-resultado" class="recon-resultado"></div>
       </section>
 
       <footer>

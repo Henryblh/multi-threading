@@ -101,12 +101,20 @@ table { width: 100%; border-collapse: collapse; font-size: .72rem; }
 th, td { padding: 9px; text-align: right; border-bottom: 1px solid var(--grid); }
 th:first-child, td:first-child { text-align: left; }
 th { color: var(--muted); }
+.recon-resultado { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 22px; }
+.recon-card { border: 2px solid var(--ink); background: #fffdf5; padding: 14px; border-top: 7px solid var(--cor); }
+.recon-tempo { margin: 4px 0 8px; font: 800 1.7rem Georgia, serif; }
+.recon-barra { height: 12px; border: 1px solid var(--ink); background: #fff; }
+.recon-barra span { display: block; height: 100%; background: var(--cor); }
+.recon-frases { margin: 12px 0 0; padding-left: 18px; font-size: .72rem; line-height: 1.6; }
+.recon-resumo { grid-column: 1 / -1; margin: 4px 0 0; padding: 11px; border: 2px solid var(--ink); background: var(--acid); font-size: .76rem; font-weight: 700; }
+code { background: #e9f3f6; padding: 1px 4px; border: 1px solid var(--grid); font-size: .9em; }
 footer { margin-top: 29px; padding: 15px 0; border-top: 2px solid var(--ink); font-size: .74rem; line-height: 1.55; }
 
 @keyframes entra { from { opacity: 0; transform: translateX(-50%) scale(.4); } to { opacity: 1; transform: translateX(-50%) scale(1); } }
 @media (max-width: 760px) {
   .laboratorio { padding: 21px 15px 40px; }
-  .masthead-row, .controles-grid, .resultado-grid, .graficos { display: grid; grid-template-columns: 1fr; }
+  .masthead-row, .controles-grid, .resultado-grid, .graficos, .recon-resultado { display: grid; grid-template-columns: 1fr; }
   .aviso { max-width: none; }
   .placar { border-left: 0; border-top: 2px solid var(--ink); }
   .legenda { text-align: left; width: 100%; }

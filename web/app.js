@@ -9,7 +9,9 @@
     run: $("run-button"), cancel: $("cancel-button"), status: $("status"),
     compare: $("compare-button"), compareStatus: $("compare-status"), repetitions: $("repetitions"),
     gridLengths: $("grid-lengths"), gridRepetitions: $("grid-repetitions"),
-    gridButton: $("grid-button"), gridStatus: $("grid-status")
+    gridButton: $("grid-button"), gridStatus: $("grid-status"),
+    reconText: $("recon-texto"), reconThreads: $("recon-threads"),
+    reconButton: $("recon-button"), reconStatus: $("recon-status")
   };
 
   function cor(threadId) { return colors[threadId % colors.length]; }
@@ -58,7 +60,11 @@
       item.className = "bloco"; item.style.setProperty("--cor", cor(threadId));
       const title = document.createElement("strong"); title.textContent = "T" + threadId;
       const text = document.createElement("span");
-      text.textContent = indices.length ? "palavras " + (indices[0] + 1) + "–" + (indices[indices.length - 1] + 1) : "sem palavras";
+      const posicoes = indices.map((indice) => indice + 1);
+      const rotulo = posicoes.length > 6
+        ? posicoes.slice(0, 6).join(", ") + ", … (" + posicoes.length + " palavras)"
+        : posicoes.join(", ");
+      text.textContent = posicoes.length ? "palavras " + rotulo : "sem palavras";
       item.append(title, text); host.append(item);
     });
     const timeline = $("timeline"); timeline.replaceChildren();
@@ -372,6 +378,70 @@
     }
   }
 
+  function renderReconstrucao(dados) {
+    const host = $("recon-resultado"); host.replaceChildren();
+    const maxDur = Math.max(dados.single.duration_ms, dados.multi.duration_ms, 1);
+    [dados.single, dados.multi].forEach((lado, indice) => {
+      const card = document.createElement("div");
+      card.className = "recon-card"; card.style.setProperty("--cor", cor(indice ? 1 : 3));
+      const titulo = document.createElement("p");
+      titulo.className = "microtitulo";
+      titulo.textContent = lado.threads === 1 ? "1 THREAD · TUDO EM SÉRIE" : lado.threads + " THREADS · EM PARALELO";
+      const tempo = document.createElement("p");
+      tempo.className = "recon-tempo"; tempo.textContent = lado.duration_ms.toFixed(0) + " ms";
+      const barra = document.createElement("div"); barra.className = "recon-barra";
+      const fill = document.createElement("span");
+      fill.style.width = Math.max(2, lado.duration_ms / maxDur * 100) + "%";
+      barra.append(fill);
+      const lista = document.createElement("ol"); lista.className = "recon-frases";
+      Object.entries(lado.sentences).forEach(([id, frase]) => {
+        const li = document.createElement("li");
+        li.textContent = id + " → " + frase;
+        lista.append(li);
+      });
+      card.append(titulo, tempo, barra, lista);
+      host.append(card);
+    });
+    const resumo = document.createElement("p");
+    resumo.className = "recon-resumo";
+    const rapidez = dados.speedup >= 1.05
+      ? dados.speedup.toFixed(2) + "× mais rápido com " + dados.multi.threads + " threads"
+      : "sem ganho real com " + dados.multi.threads + " threads";
+    resumo.textContent = (dados.match ? "Mesma mensagem remontada nos dois casos — " : "Atenção: remontagens diferentes — ")
+      + rapidez + ". A ordem de chegada mudou, o conteúdo não.";
+    host.append(resumo);
+  }
+
+  async function iniciarReconstrucao() {
+    const text = controls.reconText.value.trim();
+    const threads = Number(controls.reconThreads.value);
+    if (!text) { controls.reconStatus.textContent = "Cole um lote endereçado."; return; }
+    if (!Number.isInteger(threads) || threads < 2 || threads > 16) {
+      controls.reconStatus.textContent = "Escolha entre 2 e 16 threads."; return;
+    }
+    if (state.controller) state.controller.abort();
+    const controller = new AbortController(); state.controller = controller;
+    const payload = { text, threads, delay_min_ms: Number(controls.min.value), delay_max_ms: Number(controls.max.value) };
+    controls.reconButton.disabled = true; controls.run.disabled = true;
+    controls.reconStatus.textContent = "Enviando os dois lotes e remontando…";
+    try {
+      const response = await fetch("/api/reconstruct", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload), signal: controller.signal
+      });
+      const dados = await response.json();
+      if (!response.ok) throw new Error(dados.error || "Não foi possível remontar.");
+      renderReconstrucao(dados);
+      controls.reconStatus.textContent = "Pronto. Compare os tempos: mesmo trabalho, remontado pelas etiquetas.";
+    } catch (error) {
+      controls.reconStatus.textContent = error.name === "AbortError" ? "Cancelado." : error.message;
+    } finally {
+      if (state.controller === controller) state.controller = null;
+      controls.reconButton.disabled = false; controls.run.disabled = false;
+    }
+  }
+
+  controls.reconButton.addEventListener("click", iniciarReconstrucao);
   controls.run.addEventListener("click", iniciarRodada);
   controls.cancel.addEventListener("click", () => { if (state.controller) state.controller.abort(); });
   controls.compare.addEventListener("click", iniciarComparacao);
