@@ -32,6 +32,16 @@
   }
   [controls.threads, controls.min, controls.max].forEach((input) => input.addEventListener("input", atualizarSaidas));
 
+  function montarLoteEnderecado(texto) {
+    return texto.trim().split(/\s+/).filter(Boolean)
+      .map((palavra, indice) => "id1/palavra" + (indice + 1) + "/" + palavra)
+      .join(" ");
+  }
+  function atualizarLoteEnderecado() {
+    controls.reconText.value = montarLoteEnderecado(controls.text.value);
+  }
+  controls.text.addEventListener("input", atualizarLoteEnderecado);
+
   function criarContagens(hostId) {
     const host = $(hostId);
     [1, 2, 4, 8, 16, 32].forEach((count) => {
@@ -413,9 +423,10 @@
   }
 
   async function iniciarReconstrucao() {
+    atualizarLoteEnderecado();
     const text = controls.reconText.value.trim();
     const threads = Number(controls.reconThreads.value);
-    if (!text) { controls.reconStatus.textContent = "Cole um lote endereçado."; return; }
+    if (!text) { controls.reconStatus.textContent = "Escreva uma frase na seção 01."; return; }
     if (!Number.isInteger(threads) || threads < 2 || threads > 16) {
       controls.reconStatus.textContent = "Escolha entre 2 e 16 threads."; return;
     }
@@ -454,4 +465,5 @@
   criarContagens("grid-thread-counts");
   atualizarSaidas();
   limparRodada();
+  atualizarLoteEnderecado();
 })();
