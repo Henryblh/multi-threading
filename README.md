@@ -49,6 +49,38 @@ python threads_visual.py 8          # uma rodada com 8 threads
 python threads_visual.py --comparar # compara diferentes quantidades de threads
 ```
 
+## Parte 2: escalonamento (Java)
+
+Comparação de algoritmos de escalonamento num canal de chat: cada mensagem é uma
+thread Java, e um despachante decide, com semáforos, quem usa a CPU (1 palavra = 1 tick).
+Algoritmos: **FCFS**, **SJF**, **Round Robin** e **Round Robin por usuário**.
+
+Requer JDK 17 ou superior (sem dependências externas). A partir da raiz do projeto:
+
+```bash
+javac -encoding UTF-8 -d escalonamento/out escalonamento/src/escalonador/*.java
+java -cp escalonamento/out escalonador.Servidor            # playground em http://127.0.0.1:8001
+java -cp escalonamento/out escalonador.Servidor --terminal spammer   # Gantt no terminal
+```
+
+Cenários do terminal: `spammer`, `fila`, `insistente`, `iguais`.
+
+Testes:
+
+```bash
+javac -encoding UTF-8 -d escalonamento/out escalonamento/src/escalonador/*.java escalonamento/test/escalonador/*.java
+java -cp escalonamento/out escalonador.TesteEscalonador
+```
+
+| Arquivo | Descrição |
+| --- | --- |
+| `escalonamento/src/escalonador/Despachante.java` | Libera uma thread por vez via semáforo e mede o resultado |
+| `escalonamento/src/escalonador/Politica.java` | Os algoritmos (a fila de prontos de cada um) |
+| `escalonamento/src/escalonador/Tarefa.java` | A thread de cada mensagem |
+| `escalonamento/src/escalonador/Cenarios.java` | Cenários prontos que expõem o ponto forte/fraco de cada algoritmo |
+| `escalonamento/src/escalonador/Servidor.java` | Servidor HTTP do JDK e modo terminal |
+| `escalonamento/web/` | Interface do playground (reusa `web/styles.css`) |
+
 ## Testes
 
 ```bash

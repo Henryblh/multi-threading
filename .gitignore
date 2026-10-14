@@ -38,3 +38,7 @@ Thumbs.db
 # Environment variables
 .env
 .env.local
+
+# Java (parte 2)
+escalonamento/out/
+*.class
