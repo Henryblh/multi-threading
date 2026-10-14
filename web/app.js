@@ -11,17 +11,36 @@
     gridLengths: $("grid-lengths"), gridRepetitions: $("grid-repetitions"),
     gridButton: $("grid-button"), gridStatus: $("grid-status"),
     reconText: $("recon-texto"), reconThreads: $("recon-threads"),
-    reconButton: $("recon-button"), reconStatus: $("recon-status")
+    reconButton: $("recon-button"), reconStatus: $("recon-status"),
+    quantum: $("quantum"), schedulerHint: $("scheduler-hint"),
+    schedulersButton: $("schedulers-button"), schedulersStatus: $("schedulers-status")
+  };
+  const nomesEscalonador = { livre: "Livre (SO)", fcfs: "FCFS", rr: "Round Robin" };
+  const coresEscalonador = { livre: "#278560", fcfs: "#1f91c8", rr: "#fd5d42" };
+  const dicasEscalonador = {
+    livre: "Todas as threads correm juntas; o sistema operacional decide quem avança.",
+    fcfs: "Uma CPU: T0 roda até acabar, depois T1, depois T2…",
+    rr: "Uma CPU: cada thread roda um quantum e volta para o fim da fila."
   };
 
   function cor(threadId) { return colors[threadId % colors.length]; }
   function escapeText(node, value) { node.textContent = value; }
+  function escalonadorAtual() {
+    const marcado = document.querySelector('input[name="scheduler"]:checked');
+    return marcado ? marcado.value : "livre";
+  }
+  function quantumAtual() {
+    const valor = Number(controls.quantum.value);
+    return Number.isInteger(valor) ? Math.min(20, Math.max(1, valor)) : 1;
+  }
   function config() {
     return {
       text: controls.text.value,
       threads: Number(controls.threads.value),
       delay_min_ms: Number(controls.min.value),
-      delay_max_ms: Number(controls.max.value)
+      delay_max_ms: Number(controls.max.value),
+      scheduler: escalonadorAtual(),
+      quantum: quantumAtual()
     };
   }
   function atualizarSaidas() {
@@ -29,8 +48,13 @@
     if (Number(controls.min.value) > Number(controls.max.value)) controls.max.value = controls.min.value;
     $("min-output").textContent = controls.min.value + " ms";
     $("max-output").textContent = controls.max.value + " ms";
+    const escalonador = escalonadorAtual();
+    controls.quantum.disabled = escalonador !== "rr";
+    controls.schedulerHint.textContent = dicasEscalonador[escalonador];
   }
-  [controls.threads, controls.min, controls.max].forEach((input) => input.addEventListener("input", atualizarSaidas));
+  [controls.threads, controls.min, controls.max, controls.quantum].forEach((input) => input.addEventListener("input", atualizarSaidas));
+  document.querySelectorAll('input[name="scheduler"]').forEach((input) => input.addEventListener("change", atualizarSaidas));
+  function ms(valor) { return valor === null || valor === undefined ? "—" : valor.toFixed(0) + " ms"; }
 
   function montarLoteEnderecado(texto) {
     return texto.trim().split(/\s+/).filter(Boolean)
@@ -59,11 +83,11 @@
     $("ordem-chegada").replaceChildren();
     escapeText($("frase-original"), controls.text.value.trim() || "—");
     escapeText($("frase-final"), "As palavras aparecerão aqui.");
-    ["metric-time", "metric-inversions", "metric-kendall"].forEach((id) => escapeText($(id), "—"));
+    ["metric-time", "metric-inversions", "metric-kendall", "metric-wait", "metric-response", "metric-switches"].forEach((id) => escapeText($(id), "—"));
     escapeText($("interpretacao"), "A primeira medição aparecerá ao final da rodada.");
   }
 
-  function renderAlocacao(blocks, words) {
+  function renderAlocacao(blocks, words, scheduler) {
     const host = $("alocacao"); host.replaceChildren();
     blocks.forEach((indices, threadId) => {
       const item = document.createElement("div");
@@ -84,7 +108,26 @@
       const track = document.createElement("div"); track.className = "trilha"; track.dataset.thread = threadId;
       lane.append(label, track); timeline.append(lane);
     });
-    state.run = { words, maxTime: Math.max(1, Number(controls.max.value) * Math.ceil(words.length / Math.max(1, blocks.length))), events: [] };
+    // Com um escalonador só uma thread trabalha por vez: o tempo total é a soma dos atrasos.
+    const media = (Number(controls.min.value) + Number(controls.max.value)) / 2;
+    const estimativa = scheduler === "livre"
+      ? Number(controls.max.value) * Math.ceil(words.length / Math.max(1, blocks.length))
+      : media * words.length;
+    state.run = { words, scheduler, maxTime: Math.max(1, estimativa), events: [], slices: [], running: null };
+  }
+
+  function despachar(record) {
+    if (!state.run) return;
+    state.run.running = { thread_id: record.thread_id, inicio_ms: record.inicio_ms };
+    redesenharTimeline();
+  }
+
+  function registrarFatia(record) {
+    if (!state.run) return;
+    state.run.slices.push(record);
+    state.run.running = null;
+    state.run.maxTime = Math.max(state.run.maxTime, record.fim_ms);
+    redesenharTimeline();
   }
 
   function adicionarEvento(event) {
@@ -99,14 +142,35 @@
     escapeText($("frase-final"), state.run.events.map((entry) => entry.palavra).join(" "));
   }
 
+  function barraFatia(fatia, fim, maxTime, cls) {
+    const barra = document.createElement("span");
+    barra.className = cls; barra.style.setProperty("--cor", cor(fatia.thread_id));
+    barra.style.left = (fatia.inicio_ms / maxTime) * 98 + "%";
+    barra.style.width = Math.max(0.4, ((fim - fatia.inicio_ms) / maxTime) * 98) + "%";
+    barra.title = "T" + fatia.thread_id + " com a CPU: " + fatia.inicio_ms.toFixed(0) + "–" + fim.toFixed(0) + " ms";
+    return barra;
+  }
+
   function redesenharTimeline() {
     if (!state.run) return;
     document.querySelectorAll(".trilha").forEach((track) => track.replaceChildren());
-    state.run.events.forEach((event) => {
+    const fatias = state.run.slices.slice();
+    if (state.run.running) {
+      const ultimo = state.run.events.length ? state.run.events[state.run.events.length - 1].tempo_ms : 0;
+      fatias.push(Object.assign({}, state.run.running, { fim_ms: Math.max(state.run.running.inicio_ms, ultimo), ativa: true }));
+    }
+    fatias.forEach((fatia) => {
+      const track = document.querySelector('.trilha[data-thread="' + fatia.thread_id + '"]');
+      if (track) track.append(barraFatia(fatia, fatia.fim_ms, state.run.maxTime, "fatia" + (fatia.ativa ? " ativa" : "")));
+    });
+    const jaAnimados = state.run.animados || 0;
+    state.run.animados = state.run.events.length;
+    state.run.events.forEach((event, posicao) => {
     const track = document.querySelector('.trilha[data-thread="' + event.thread_id + '"]');
     if (track) {
       const pulse = document.createElement("span");
       pulse.className = "pulso"; pulse.style.setProperty("--cor", cor(event.thread_id));
+      if (posicao < jaAnimados) pulse.style.animation = "none";  // só palavras novas entram animadas
       pulse.style.left = Math.min(98, Math.max(1, (event.tempo_ms / state.run.maxTime) * 98)) + "%";
       pulse.title = "Palavra " + (event.indice_original + 1) + ": " + event.palavra;
       pulse.textContent = event.indice_original + 1;
@@ -118,6 +182,18 @@
   function interpretar(summary) {
     if (summary.cancelled) return "A rodada foi cancelada antes de todas as palavras chegarem.";
     if (summary.order.length < 2) return "Há poucas palavras para observar inversões.";
+    if (summary.scheduler === "fcfs") {
+      const ultima = summary.thread_stats[summary.thread_stats.length - 1];
+      return "FCFS: cada thread entregou o bloco inteiro antes da próxima entrar. A ordem é previsível, mas a frase sai agrupada por thread — e T"
+        + ultima.thread_id + " esperou " + ultima.response_ms.toFixed(0) + " ms para começar.";
+    }
+    if (summary.scheduler === "rr" && summary.kendall === 0) {
+      return "Round Robin com quantum " + summary.quantum + " acompanhou o rodízio da divisão: a frase saiu na ordem certa, ao custo de "
+        + summary.context_switches + " trocas de contexto e de um tempo total serial.";
+    }
+    if (summary.scheduler === "rr") {
+      return "Com quantum " + summary.quantum + ", cada thread entrega " + summary.quantum + " palavras seguidas antes de passar a vez: a frase sai em blocos. Use quantum 1 para recuperar a ordem.";
+    }
     if (summary.kendall === 0) return "A saída preservou a ordem. Com uma thread, isso é garantido.";
     if (summary.kendall < .2) return "Há poucas inversões: os blocos ainda aparecem quase agrupados.";
     if (summary.kendall < .45) return "O escalonador misturou blocos de maneira perceptível.";
@@ -128,6 +204,9 @@
     escapeText($("metric-time"), summary.duration_ms.toFixed(1) + " ms");
     escapeText($("metric-inversions"), summary.inversions + " / " + summary.total_pairs);
     escapeText($("metric-kendall"), (summary.kendall * 100).toFixed(1) + "%");
+    escapeText($("metric-wait"), ms(summary.mean_wait_ms));
+    escapeText($("metric-response"), ms(summary.mean_response_ms));
+    escapeText($("metric-switches"), summary.context_switches === null ? "SO decide" : String(summary.context_switches));
     escapeText($("interpretacao"), interpretar(summary));
     controls.status.textContent = summary.cancelled ? "Rodada cancelada." : "Rodada concluída: " + summary.events_count + " palavras observadas.";
   }
@@ -165,10 +244,17 @@
     controls.status.textContent = "Criando threads e aguardando as primeiras conclusões…";
     try {
       await consumirNDJSON("/api/run", payload, (record) => {
-        if (record.type === "allocation") renderAlocacao(record.blocks, record.config.text.split(/\s+/).filter(Boolean));
+        if (record.type === "allocation") renderAlocacao(record.blocks, record.config.text.split(/\s+/).filter(Boolean), record.config.scheduler);
         if (record.type === "event") adicionarEvento(record);
+        if (record.type === "dispatch") despachar(record);
+        if (record.type === "slice") registrarFatia(record);
         if (record.type === "summary") {
           record.events_count = record.order.length;
+          if (state.run) {
+            state.run.slices = record.slices; state.run.running = null;
+            state.run.maxTime = Math.max(state.run.maxTime, record.duration_ms);
+            redesenharTimeline();
+          }
           concluirRodada(record);
         }
         if (record.type === "error") throw new Error(record.error);
@@ -452,6 +538,106 @@
     }
   }
 
+  function cartaoEscalonador(resultado, maxTime) {
+    const card = document.createElement("article");
+    card.className = "escalonador-card"; card.style.setProperty("--cor", coresEscalonador[resultado.scheduler]);
+    const titulo = document.createElement("p"); titulo.className = "microtitulo";
+    titulo.textContent = nomesEscalonador[resultado.scheduler].toUpperCase() + (resultado.scheduler === "rr" ? " · QUANTUM " + resultado.quantum : "");
+    const tempo = document.createElement("p"); tempo.className = "recon-tempo"; tempo.textContent = resultado.duration_ms.toFixed(0) + " ms";
+
+    const gantt = document.createElement("div"); gantt.className = "gantt";
+    resultado.blocks.forEach((bloco, threadId) => {
+      if (!bloco.length) return;
+      const linha = document.createElement("div"); linha.className = "gantt-linha";
+      const rotulo = document.createElement("span"); rotulo.className = "gantt-rotulo"; rotulo.textContent = "T" + threadId;
+      rotulo.style.setProperty("--cor", cor(threadId));
+      const trilha = document.createElement("div"); trilha.className = "gantt-trilha";
+      resultado.slices.filter((fatia) => fatia.thread_id === threadId)
+        .forEach((fatia) => trilha.append(barraFatia(fatia, fatia.fim_ms, maxTime, "gantt-fatia")));
+      linha.append(rotulo, trilha); gantt.append(linha);
+    });
+    const eixo = document.createElement("p"); eixo.className = "gantt-eixo";
+    const zero = document.createElement("span"); zero.textContent = "0 ms";
+    const fim = document.createElement("span"); fim.textContent = maxTime.toFixed(0) + " ms";
+    eixo.append(zero, fim);
+
+    const chegada = document.createElement("ol"); chegada.className = "ordem-chegada compacta";
+    resultado.events.forEach((evento) => {
+      const item = document.createElement("li");
+      item.style.setProperty("--cor", cor(evento.thread_id));
+      item.textContent = (evento.indice_original + 1) + " · " + evento.palavra;
+      chegada.append(item);
+    });
+
+    const metricas = document.createElement("dl"); metricas.className = "metricas";
+    [
+      ["desordem", (resultado.kendall * 100).toFixed(1) + "%"],
+      ["espera média", ms(resultado.mean_wait_ms)],
+      ["resposta média", ms(resultado.mean_response_ms)],
+      ["retorno médio", ms(resultado.mean_turnaround_ms)],
+      ["trocas de contexto", resultado.context_switches === null ? "SO decide" : String(resultado.context_switches)]
+    ].forEach(([nome, valor]) => {
+      const linha = document.createElement("div");
+      const dt = document.createElement("dt"); dt.textContent = nome;
+      const dd = document.createElement("dd"); dd.textContent = valor;
+      linha.append(dt, dd); metricas.append(linha);
+    });
+    const frase = document.createElement("p"); frase.className = "frase"; frase.textContent = resultado.final_text;
+    card.append(titulo, tempo, gantt, eixo, chegada, frase, metricas);
+    return card;
+  }
+
+  function conclusaoEscalonadores(resultados) {
+    const por = Object.fromEntries(resultados.map((item) => [item.scheduler, item]));
+    const { livre, fcfs, rr } = por;
+    if (!livre || !fcfs || !rr) return "";
+    const partes = [];
+    const serial = (fcfs.duration_ms + rr.duration_ms) / 2;
+    partes.push("Livre terminou " + (serial / Math.max(1, livre.duration_ms)).toFixed(1) + "× mais rápido porque as threads trabalham em paralelo, mas embaralhou "
+      + (livre.kendall * 100).toFixed(0) + "% dos pares.");
+    partes.push("FCFS e Round Robin usam uma CPU só, então levam quase o mesmo tempo total (" + fcfs.duration_ms.toFixed(0) + " × " + rr.duration_ms.toFixed(0) + " ms).");
+    partes.push("A diferença está em quem espera: no FCFS a resposta média foi " + ms(fcfs.mean_response_ms) + ", no Round Robin " + ms(rr.mean_response_ms) + ".");
+    if (rr.kendall === 0) partes.push("Com quantum " + rr.quantum + " o Round Robin segue o rodízio da divisão e entrega a frase na ordem certa.");
+    else if (fcfs.kendall > 0) partes.push("O FCFS entrega a frase agrupada por thread (desordem " + (fcfs.kendall * 100).toFixed(0) + "%).");
+    return partes.join(" ");
+  }
+
+  function renderEscalonadores(resultados) {
+    const host = $("schedulers-resultado"); host.replaceChildren();
+    const maxTime = Math.max(1, ...resultados.map((item) => item.duration_ms));
+    resultados.forEach((resultado) => host.append(cartaoEscalonador(resultado, maxTime)));
+    const resumo = document.createElement("p"); resumo.className = "recon-resumo";
+    resumo.textContent = conclusaoEscalonadores(resultados);
+    host.append(resumo);
+  }
+
+  async function iniciarEscalonadores() {
+    const payload = config();
+    if (!payload.text.trim()) { controls.schedulersStatus.textContent = "Escreva uma frase na seção 01."; return; }
+    if (state.controller) state.controller.abort();
+    const controller = new AbortController(); state.controller = controller;
+    controls.schedulersButton.disabled = true; controls.run.disabled = true; controls.cancel.disabled = false;
+    controls.schedulersStatus.textContent = "Rodando os três escalonadores com os mesmos atrasos…";
+    try {
+      await consumirNDJSON("/api/compare-schedulers", payload, (record) => {
+        if (record.type === "progress") {
+          controls.schedulersStatus.textContent = "Rodando " + (record.done + 1) + " de " + record.total + " · " + nomesEscalonador[record.scheduler] + "…";
+        }
+        if (record.type === "schedulers") {
+          renderEscalonadores(record.results);
+          controls.schedulersStatus.textContent = "Pronto. Cada cor é uma thread; as barras mostram quando ela teve a CPU.";
+        }
+        if (record.type === "error") throw new Error(record.error);
+      }, controller.signal);
+    } catch (error) {
+      controls.schedulersStatus.textContent = error.name === "AbortError" ? "Comparação cancelada." : error.message;
+    } finally {
+      if (state.controller === controller) state.controller = null;
+      controls.schedulersButton.disabled = false; controls.run.disabled = false; controls.cancel.disabled = true;
+    }
+  }
+
+  controls.schedulersButton.addEventListener("click", iniciarEscalonadores);
   controls.reconButton.addEventListener("click", iniciarReconstrucao);
   controls.run.addEventListener("click", iniciarRodada);
   controls.cancel.addEventListener("click", () => { if (state.controller) state.controller.abort(); });

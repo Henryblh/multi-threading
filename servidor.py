@@ -8,14 +8,18 @@ from __future__ import annotations
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import argparse
+from dataclasses import replace
 import json
 from pathlib import Path
 from queue import Queue
+import random
 import threading
 from typing import Any
 from urllib.parse import urlparse
 
+from semaforos_core import NOMES, ConfiguracaoCanal, canal_de_dict, executar_canal
 from threads_core import (
+    ESCALONADORES,
     Configuracao,
     ConfiguracaoInvalida,
     configuracao_de_dict,
@@ -72,6 +76,8 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
         caminho = urlparse(self.path).path
         arquivos = {
             "/": (WEB / "index.html", "text/html; charset=utf-8"),
+            "/semaforos": (WEB / "semaforos.html", "text/html; charset=utf-8"),
+            "/static/semaforos.js": (WEB / "semaforos.js", "application/javascript; charset=utf-8"),
             "/static/styles.css": (WEB / "styles.css", "text/css; charset=utf-8"),
             "/static/app.js": (WEB / "app.js", "application/javascript; charset=utf-8"),
         }
@@ -102,6 +108,11 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
                 self._stream_comparacao(configuracao, dados)
             elif caminho == "/api/compare-grid":
                 self._stream_grade(dados)
+            elif caminho == "/api/critical-section":
+                self._stream_secao_critica(canal_de_dict(dados))
+            elif caminho == "/api/compare-schedulers":
+                configuracao = configuracao_de_dict(dados)
+                self._stream_escalonadores(configuracao)
             elif caminho == "/api/reconstruct":
                 self._reconstruir(dados)
             else:
@@ -131,14 +142,25 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
                 "text": configuracao.texto, "threads": configuracao.threads,
                 "delay_min_ms": configuracao.atraso_min_ms,
                 "delay_max_ms": configuracao.atraso_max_ms,
+                "scheduler": configuracao.escalonador,
+                "quantum": configuracao.quantum,
             }})
 
         def evento(item: Any) -> None:
             fila.put({"type": "event", **item.como_dict()})
 
+        def despacho(thread_id: int, inicio_ms: float) -> None:
+            fila.put({"type": "dispatch", "thread_id": thread_id, "inicio_ms": inicio_ms})
+
+        def fatia(item: Any) -> None:
+            fila.put({"type": "slice", **item.como_dict()})
+
         def rodar() -> None:
             try:
-                resultado = executar(configuracao, ao_iniciar=iniciar, ao_evento=evento, cancelar=cancelar)
+                resultado = executar(
+                    configuracao, ao_iniciar=iniciar, ao_evento=evento,
+                    ao_despacho=despacho, ao_fatia=fatia, cancelar=cancelar,
+                )
                 resultado.pop("events", None)
                 fila.put({"type": "summary", **resultado})
             except Exception as erro:  # mantém o stream legível se algo inesperado falhar
@@ -323,6 +345,88 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
             cancelar.set()
             worker.join()
 
+
+    def _stream_secao_critica(self, configuracao: ConfiguracaoCanal) -> None:
+        """Transmite ao vivo cada pedido de semáforo, entrada, palavra e saída."""
+        fila: Queue[dict | None] = Queue()
+        cancelar = threading.Event()
+
+        def rodar() -> None:
+            try:
+                fila.put({
+                    "type": "start",
+                    "mode": "com" if configuracao.com_controle else "sem",
+                    "frequencies": configuracao.frequencias,
+                    "messages": list(configuracao.mensagens),
+                    "names": list(NOMES[:len(configuracao.mensagens)]),
+                })
+                resultado = executar_canal(
+                    configuracao, cancelar=cancelar,
+                    ao_evento=lambda evento: fila.put({"type": "event", **evento}),
+                )
+                resultado.pop("events", None)
+                fila.put({"type": "summary", **resultado})
+            except Exception as erro:
+                fila.put({"type": "error", "error": str(erro)})
+            finally:
+                fila.put(None)
+
+        worker = threading.Thread(target=rodar, daemon=True, name="secao-critica-api")
+        worker.start()
+        self._iniciar_ndjson()
+        try:
+            while True:
+                item = fila.get()
+                if item is None:
+                    break
+                self._enviar_linha(item)
+        except (BrokenPipeError, ConnectionResetError):
+            cancelar.set()
+        finally:
+            cancelar.set()
+            worker.join()
+
+    def _stream_escalonadores(self, base: Configuracao) -> None:
+        """Roda a mesma frase com livre, FCFS e Round Robin, usando a mesma
+        semente: cada palavra leva o mesmo tempo nos três, só a política muda."""
+        fila: Queue[dict | None] = Queue()
+        cancelar = threading.Event()
+        semente = random.randrange(2**63)
+
+        def rodar() -> None:
+            resultados = []
+            try:
+                for posicao, escalonador in enumerate(ESCALONADORES):
+                    if cancelar.is_set():
+                        return
+                    fila.put({"type": "progress", "done": posicao, "total": len(ESCALONADORES),
+                              "scheduler": escalonador})
+                    resultado = executar(
+                        replace(base, escalonador=escalonador),
+                        cancelar=cancelar,
+                        gerador_aleatorio=random.Random(semente),
+                    )
+                    resultados.append(resultado)
+                fila.put({"type": "schedulers", "results": resultados})
+            except Exception as erro:
+                fila.put({"type": "error", "error": str(erro)})
+            finally:
+                fila.put(None)
+
+        worker = threading.Thread(target=rodar, daemon=True, name="escalonadores-api")
+        worker.start()
+        self._iniciar_ndjson()
+        try:
+            while True:
+                item = fila.get()
+                if item is None:
+                    break
+                self._enviar_linha(item)
+        except (BrokenPipeError, ConnectionResetError):
+            cancelar.set()
+        finally:
+            cancelar.set()
+            worker.join()
 
     def _reconstruir(self, dados: dict) -> None:
         """Envia o mesmo lote endereçado com 1 thread e com várias, remonta as

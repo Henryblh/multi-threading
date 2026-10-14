@@ -10,6 +10,10 @@
   <body>
     <main class="laboratorio">
       <header class="masthead">
+        <nav class="navegacao">
+          <a href="/semaforos">Semáforos (TP3)</a>
+          <a href="/" aria-current="page">Laboratório do Escalonador</a>
+        </nav>
         <p class="eyebrow">PYTHON / CONCORRÊNCIA / OBSERVAÇÃO</p>
         <div class="masthead-row">
           <div>
@@ -48,6 +52,20 @@
               <span>Atraso máximo <output id="max-output">100 ms</output></span>
               <input id="delay-max" type="range" min="0" max="500" value="100">
             </label>
+            <fieldset class="campo escalonador">
+              <legend>Escalonador</legend>
+              <div class="segmentos" role="radiogroup">
+                <label><input type="radio" name="scheduler" value="livre" checked> Livre (SO)</label>
+                <label><input type="radio" name="scheduler" value="fcfs"> FCFS</label>
+                <label><input type="radio" name="scheduler" value="rr"> Round Robin</label>
+              </div>
+              <label class="quantum">
+                <span>Quantum do RR</span>
+                <input id="quantum" type="number" min="1" max="20" value="1" disabled>
+                <span>palavra(s) por vez</span>
+              </label>
+              <small id="scheduler-hint" class="dica"></small>
+            </fieldset>
           </div>
         </div>
         <div class="acoes">
@@ -61,7 +79,7 @@
         <div class="section-heading">
           <p class="section-number">02</p>
           <h2 id="titulo-observatorio">Veja o escalonamento</h2>
-          <p class="legenda">Cada thread recebe posições alternadas (T0: 1ª, 4ª…; T1: 2ª, 5ª…). Cada marca é uma palavra concluída: a posição horizontal é o tempo; a raia identifica a thread.</p>
+          <p class="legenda">Cada thread recebe posições alternadas (T0: 1ª, 4ª…; T1: 2ª, 5ª…). Cada marca é uma palavra concluída: a posição horizontal é o tempo; a raia identifica a thread. A faixa clara mostra quando a thread estava com a CPU.</p>
         </div>
         <div id="alocacao" class="alocacao" aria-live="polite"></div>
         <div class="timeline-shell">
@@ -96,14 +114,44 @@
             <div><dt>tempo total</dt><dd id="metric-time">—</dd></div>
             <div><dt>pares invertidos</dt><dd id="metric-inversions">—</dd></div>
             <div><dt>desordem Kendall</dt><dd id="metric-kendall">—</dd></div>
+            <div><dt>espera média</dt><dd id="metric-wait">—</dd></div>
+            <div><dt>resposta média</dt><dd id="metric-response">—</dd></div>
+            <div><dt>trocas de contexto</dt><dd id="metric-switches">—</dd></div>
           </dl>
           <p id="interpretacao" class="interpretacao">A primeira medição aparecerá ao final da rodada.</p>
         </aside>
       </section>
 
-      <section class="painel comparador" aria-labelledby="titulo-comparador">
+      <section class="painel comparador" aria-labelledby="titulo-escalonadores">
         <div class="section-heading">
           <p class="section-number">04</p>
+          <h2 id="titulo-escalonadores">Escalonadores lado a lado</h2>
+          <p class="legenda">A mesma frase, as mesmas threads e o mesmo tempo para cada palavra. Só muda quem decide qual thread usa a CPU.</p>
+        </div>
+        <div class="politicas">
+          <article style="--cor: #278560">
+            <p class="microtitulo">LIVRE · SISTEMA OPERACIONAL</p>
+            <p>Todas as threads rodam ao mesmo tempo. Quem termina primeiro entrega primeiro.</p>
+          </article>
+          <article style="--cor: #1f91c8">
+            <p class="microtitulo">FCFS · FIRST COME, FIRST SERVED</p>
+            <p>Fila por ordem de chegada. A thread da vez usa a CPU até terminar todas as suas palavras; só então a próxima entra.</p>
+          </article>
+          <article style="--cor: #fd5d42">
+            <p class="microtitulo">ROUND ROBIN · RODÍZIO COM QUANTUM</p>
+            <p>Cada thread usa a CPU por um quantum (N palavras) e volta para o fim da fila, em rodízio.</p>
+          </article>
+        </div>
+        <div class="compare-controls">
+          <button id="schedulers-button" class="botao-principal" type="button">Comparar escalonadores <span aria-hidden="true">↗</span></button>
+          <p id="schedulers-status" class="status" role="status" aria-live="polite">Usa a frase, as threads, os atrasos e o quantum da seção 01.</p>
+        </div>
+        <div id="schedulers-resultado" class="escalonadores-resultado"></div>
+      </section>
+
+      <section class="painel comparador" aria-labelledby="titulo-comparador">
+        <div class="section-heading">
+          <p class="section-number">05</p>
           <h2 id="titulo-comparador">Repita em outras escalas</h2>
           <p class="legenda">As configurações são executadas em série. Os pontos mostram cada tentativa; a linha, a média.</p>
         </div>
@@ -133,7 +181,7 @@
 
       <section class="painel comparador" aria-labelledby="titulo-grade">
         <div class="section-heading">
-          <p class="section-number">05</p>
+          <p class="section-number">06</p>
           <h2 id="titulo-grade">Comprimento × threads</h2>
           <p class="legenda">Para cada comprimento gera um texto sintético e mede o tempo com cada quantidade de threads. Cada linha do gráfico é uma quantidade de threads.</p>
         </div>
@@ -161,7 +209,7 @@
 
       <section class="painel comparador" aria-labelledby="titulo-reconstrucao">
         <div class="section-heading">
-          <p class="section-number">06</p>
+          <p class="section-number">07</p>
           <h2 id="titulo-reconstrucao">Enviar e remontar</h2>
           <p class="legenda">A mesma frase da seção 01, com cada palavra levando o cabeçalho <code>id1/palavraN/texto</code>. Mandamos o lote com 1 thread e com várias, remontamos pelas etiquetas (ignorando a ordem de chegada) e comparamos o tempo.</p>
         </div>

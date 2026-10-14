@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Seção crítica com e sem semáforo: operadores de rádio disputando um canal compartilhado.">
+    <title>Canal de Rádio</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <main class="laboratorio">
+      <header class="masthead">
+        <nav class="navegacao">
+          <a href="/semaforos" aria-current="page">Semáforos (TP3)</a>
+          <a href="/">Laboratório do Escalonador</a>
+        </nav>
+        <p class="eyebrow">TRABALHO PRÁTICO 3 / SEMÁFOROS / SEÇÃO CRÍTICA</p>
+        <div class="masthead-row">
+          <div>
+            <h1>Canal de<br><em>Rádio</em></h1>
+            <p class="intro">Cada thread é um operador de rádio com uma mensagem própria. O canal só entende uma voz por vez, como um walkie-talkie. O que acontece quando todos falam juntos? E quando um semáforo dá a vez?</p>
+          </div>
+          <aside class="aviso">
+            <span class="lamp" aria-hidden="true"></span>
+            <strong>Os três conceitos</strong>
+            <p><b>Recurso compartilhado:</b> o canal de rádio.<br>
+            <b>Seção crítica:</b> transmitir a mensagem inteira.<br>
+            <b>Semáforo:</b> a permissão para falar. <code>acquire()</code> pede; <code>release()</code> devolve.</p>
+          </aside>
+        </div>
+      </header>
+
+      <section class="painel controle" aria-labelledby="titulo-config">
+        <div class="section-heading">
+          <p class="section-number">01</p>
+          <h2 id="titulo-config">Configure o canal</h2>
+          <p class="legenda">Uma linha por operador (de 2 a 6). Cada linha vira uma thread.</p>
+        </div>
+        <div class="controles-grid">
+          <label class="campo texto-campo">
+            <span>Mensagens dos operadores</span>
+            <textarea id="mensagens" rows="5">Base chamando Alfa, responda, câmbio.
+Bravo solicita pouso na pista três, câmbio.
+Charlie na escuta, aguardando ordens, câmbio.
+Delta informa céu limpo no setor norte, câmbio.</textarea>
+          </label>
+          <div class="controles-numericos">
+            <label class="campo">
+              <span>Tempo mínimo por palavra <output id="min-output">30 ms</output></span>
+              <input id="delay-min" type="range" min="0" max="300" value="30">
+            </label>
+            <label class="campo">
+              <span>Tempo máximo por palavra <output id="max-output">90 ms</output></span>
+              <input id="delay-max" type="range" min="0" max="300" value="90">
+            </label>
+            <fieldset class="campo escalonador">
+              <legend>Frequências (permissões do semáforo)</legend>
+              <div class="segmentos" role="radiogroup">
+                <label><input type="radio" name="frequencias" value="1" checked> 1 · Semaphore(1)</label>
+                <label><input type="radio" name="frequencias" value="2"> 2 · Semaphore(2)</label>
+                <label><input type="radio" name="frequencias" value="3"> 3</label>
+              </div>
+              <small class="dica">Com 1 permissão o semáforo é binário (um mutex). Com 2 ou mais, até N operadores falam ao mesmo tempo, cada um na sua frequência.</small>
+            </fieldset>
+          </div>
+        </div>
+        <div class="acoes">
+          <button id="ambos-button" class="botao-principal" type="button">Transmitir lado a lado <span aria-hidden="true">↗</span></button>
+          <button id="sem-button" class="botao-secundario" type="button">Só SEM controle</button>
+          <button id="com-button" class="botao-secundario" type="button">Só COM controle</button>
+          <button id="cancel-button" class="botao-secundario" type="button" disabled>Cancelar</button>
+          <p id="status" class="status" role="status" aria-live="polite">As duas transmissões usam as mesmas mensagens e os mesmos tempos por palavra.</p>
+        </div>
+      </section>
+
+      <section class="painel" aria-labelledby="titulo-ar">
+        <div class="section-heading">
+          <p class="section-number">02</p>
+          <h2 id="titulo-ar">No ar</h2>
+          <p class="legenda">Faixa listrada: esperando o semáforo. Faixa cheia: com o canal (dentro da seção crítica). Cada traço é uma palavra transmitida.</p>
+        </div>
+        <div class="canais">
+          <article id="painel-sem" class="canal-painel" data-mode="sem">
+            <header class="canal-topo">
+              <p class="microtitulo">SEM CONTROLE</p>
+              <h3>Todos falam quando querem</h3>
+            </header>
+            <div class="semaforo-estado" data-role="estado"><p class="dica">Aguardando transmissão.</p></div>
+            <div class="canal-timeline" data-role="timeline"></div>
+            <div data-role="receptor" class="receptor"></div>
+            <div data-role="placar" class="canal-placar"></div>
+          </article>
+          <article id="painel-com" class="canal-painel" data-mode="com">
+            <header class="canal-topo">
+              <p class="microtitulo">COM CONTROLE</p>
+              <h3>Fala quem tem a permissão</h3>
+            </header>
+            <div class="semaforo-estado" data-role="estado"><p class="dica">Aguardando transmissão.</p></div>
+            <div class="canal-timeline" data-role="timeline"></div>
+            <div data-role="receptor" class="receptor"></div>
+            <div data-role="placar" class="canal-placar"></div>
+          </article>
+        </div>
+        <p id="conclusao" class="recon-resumo conclusao-canal" hidden></p>
+      </section>
+
+      <section class="painel" aria-labelledby="titulo-codigo">
+        <div class="section-heading">
+          <p class="section-number">03</p>
+          <h2 id="titulo-codigo">O código que muda</h2>
+          <p class="legenda">Versão resumida de <code>java/CanalDeRadio.java</code>. A única diferença entre os dois lados é pedir e devolver a permissão.</p>
+        </div>
+        <div class="codigos">
+          <figure>
+            <figcaption>SEM controle <small>todos entram na seção crítica juntos</small></figcaption>
+<pre><code>public void run() {
+    int f = canal.frequenciaDe(this); // ninguém pergunta
+
+    // ======== SEÇÃO CRÍTICA ========
+    for (String palavra : palavras) {
+        falar(palavra);
+        canal.transmitir(f, palavra);
+        contador = contador + 1;      // ler, somar, gravar
+    }
+    // ===============================
+}</code></pre>
+          </figure>
+          <figure>
+            <figcaption>COM controle <small>new Semaphore(1): um por vez</small></figcaption>
+<pre><code>public void run() {
+    <mark>semaforo.acquire();</mark>   // P(): espera a vez
+    try {
+        // ======== SEÇÃO CRÍTICA ========
+        for (String palavra : palavras) {
+            falar(palavra);
+            canal.transmitir(f, palavra);
+            contador = contador + 1;
+        }
+        // ===============================
+    } finally {
+        <mark>semaforo.release();</mark> // V(): devolve a vez
+    }
+}</code></pre>
+          </figure>
+        </div>
+        <div class="politicas">
+          <article style="--cor: #fd5d42">
+            <p class="microtitulo">MENSAGENS MISTURADAS</p>
+            <p>Sem controle, as palavras de vários operadores se intercalam no canal. Todas chegam, mas nenhuma frase fica legível.</p>
+          </article>
+          <article style="--cor: #7652c6">
+            <p class="microtitulo">ATUALIZAÇÃO PERDIDA</p>
+            <p>"contador + 1" é ler, somar e gravar. Se duas threads leem o mesmo valor, uma gravação apaga a outra e o total fica menor que o esperado.</p>
+          </article>
+          <article style="--cor: #278560">
+            <p class="microtitulo">O PREÇO DO CONTROLE</p>
+            <p>O semáforo garante a integridade, não a velocidade: enquanto um fala, os outros esperam. Mais permissões, menos espera.</p>
+          </article>
+        </div>
+      </section>
+
+      <footer>
+        <p><strong>Nota de método.</strong> O tempo de cada palavra é simulado com uma pausa. Em Python o GIL deixa <code>x += 1</code> quase atômico, então a pausa entre ler e gravar o contador alarga a janela da condição de corrida para ela aparecer numa demonstração curta. O programa Java em <code>java/CanalDeRadio.java</code> faz o mesmo experimento no terminal.</p>
+      </footer>
+    </main>
+    <script src="/static/semaforos.js"></script>
+  </body>
+</html>
