@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Laboratório para comparar algoritmos de escalonamento (FCFS, SJF, Round Robin) num canal de chat com threads Java.">
+    <title>Laboratório do Despachante</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/escalonamento.css">
+  </head>
+  <body>
+    <main class="laboratorio">
+      <header class="masthead">
+        <p class="eyebrow">JAVA / ESCALONAMENTO / CANAL DE CHAT · PARTE 2</p>
+        <div class="masthead-row">
+          <div>
+            <h1>Laboratório do<br><em>Despachante</em></h1>
+            <p class="intro">Cada mensagem do canal vira uma thread Java. Um despachante decide, com semáforos, quem usa a CPU e por quanto tempo. A regra é <strong>1 palavra = 1 tick de CPU</strong>. O mesmo canal roda com algoritmos diferentes para comparar quem responde melhor.</p>
+          </div>
+          <aside class="aviso">
+            <span class="lamp" aria-hidden="true"></span>
+            <strong>Quem decide a vez?</strong>
+            <p>O sistema operacional executa as threads, mas cada uma só trabalha quando o despachante libera o seu semáforo. Trocar a política da fila troca o algoritmo.</p>
+          </aside>
+        </div>
+      </header>
+
+      <section class="painel controle" aria-labelledby="titulo-canal">
+        <div class="section-heading">
+          <p class="section-number">01</p>
+          <h2 id="titulo-canal">Monte o canal</h2>
+          <p class="legenda">Escolha um cenário pronto ou edite as mensagens. A chegada é o tick em que a mensagem entra no servidor.</p>
+        </div>
+        <div id="cenarios" class="cenarios" role="group" aria-label="Cenários prontos"></div>
+        <p id="cenario-destaque" class="cenario-destaque">Carregando cenários…</p>
+
+        <div class="canal-grid">
+          <div class="mensagens-wrap">
+            <table class="mensagens">
+              <thead><tr><th>#</th><th>usuário</th><th>chegada</th><th>mensagem</th><th>burst</th><th><span class="sr-only">remover</span></th></tr></thead>
+              <tbody id="mensagens"></tbody>
+            </table>
+            <button id="adicionar" class="botao-secundario" type="button">+ mensagem</button>
+          </div>
+          <div class="controles-numericos">
+            <fieldset class="algoritmos">
+              <legend>Algoritmos comparados</legend>
+              <div id="algoritmos" class="checks"></div>
+            </fieldset>
+            <label class="campo">
+              <span>Quantum (RR) <output id="quantum-output">4 palavras</output></span>
+              <input id="quantum" type="range" min="1" max="20" value="4">
+              <small>1 <b aria-hidden="true">·········· justo, muitas trocas │ poucas trocas, vira FCFS ··········</b> 20</small>
+            </label>
+            <label class="campo">
+              <span>Custo da troca de contexto <output id="custo-output">1 tick</output></span>
+              <input id="custo" type="range" min="0" max="5" value="1">
+              <small>tempo gasto salvando/carregando o estado ao trocar de mensagem</small>
+            </label>
+          </div>
+        </div>
+        <div class="acoes">
+          <button id="escalonar" class="botao-principal" type="button">Escalonar <span aria-hidden="true">↗</span></button>
+          <p id="status" class="status" role="status" aria-live="polite">Escolha um cenário e escalone.</p>
+        </div>
+      </section>
+
+      <section class="painel" aria-labelledby="titulo-vivo">
+        <div class="section-heading">
+          <p class="section-number">02</p>
+          <h2 id="titulo-vivo">O canal ao vivo</h2>
+          <p class="legenda">O mesmo canal, ao mesmo tempo, em cada algoritmo. As palavras aparecem conforme a mensagem ganha CPU.</p>
+        </div>
+        <div class="player">
+          <button id="play" class="botao-principal" type="button" disabled>▶ Reproduzir</button>
+          <button id="reiniciar" class="botao-secundario" type="button" disabled>⟲ Do início</button>
+          <label class="velocidade">velocidade
+            <select id="velocidade">
+              <option value="420">lenta</option>
+              <option value="200" selected>normal</option>
+              <option value="80">rápida</option>
+            </select>
+          </label>
+          <input id="tempo" class="tempo" type="range" min="0" max="0" value="0" aria-label="Instante da simulação" disabled>
+          <p class="relogio">t = <strong id="relogio">0</strong></p>
+        </div>
+        <div id="chats" class="chats"><p class="vazio">Escalone um canal para ver as conversas.</p></div>
+      </section>
+
+      <section class="painel" aria-labelledby="titulo-gantt">
+        <div class="section-heading">
+          <p class="section-number">03</p>
+          <h2 id="titulo-gantt">Gráfico de Gantt</h2>
+          <p class="legenda">Uma raia por mensagem. Bloco colorido: na CPU. Hachurado: esperando na fila. Faixa escura no topo: troca de contexto.</p>
+        </div>
+        <div id="gantts" class="gantts"><p class="vazio">O Gantt aparecerá aqui.</p></div>
+      </section>
+
+      <section class="resultado-grid" aria-labelledby="titulo-placar">
+        <div class="texto-comparado">
+          <div class="section-heading">
+            <p class="section-number">04</p>
+            <h2 id="titulo-placar">Placar</h2>
+          </div>
+          <p class="legenda esquerda">Em ticks. Menor é melhor em todas as colunas; o destaque marca o vencedor de cada uma.</p>
+          <div class="table-wrap">
+            <table class="placar-tabela">
+              <thead><tr>
+                <th>algoritmo</th>
+                <th title="início - chegada: quanto demora para a primeira palavra aparecer">resposta média</th>
+                <th title="média, entre as pessoas, da resposta de cada uma: quem manda 5 mensagens conta uma vez">resposta por pessoa</th>
+                <th title="a maior resposta: quem ficou mais tempo sem ver nada">pior resposta</th>
+                <th title="tempo parado na fila">espera média</th>
+                <th title="término - chegada (turnaround)">retorno médio</th>
+                <th>trocas</th>
+                <th>tempo total</th>
+              </tr></thead>
+              <tbody id="placar"><tr><td colspan="8">Os números aparecerão aqui.</td></tr></tbody>
+            </table>
+          </div>
+          <div id="barras" class="barras"></div>
+        </div>
+        <aside class="placar" aria-live="polite">
+          <p class="microtitulo">VEREDITO DO CENÁRIO</p>
+          <ul id="veredito" class="veredito"><li>O veredito aparecerá depois de escalonar.</li></ul>
+        </aside>
+      </section>
+
+      <section class="painel comparador" aria-labelledby="titulo-quantum">
+        <div class="section-heading">
+          <p class="section-number">05</p>
+          <h2 id="titulo-quantum">Varra o quantum</h2>
+          <p class="legenda">Roda o canal atual com quantum de 1 a 20. As linhas tracejadas são FCFS e SJF, que não usam quantum.</p>
+        </div>
+        <div class="compare-controls">
+          <button id="varrer" class="botao-principal" type="button">Varrer quantum 1 → 20 <span aria-hidden="true">↗</span></button>
+          <p id="varrer-status" class="status" role="status" aria-live="polite">Usa as mensagens e o custo de troca da seção 01.</p>
+        </div>
+        <div class="graficos">
+          <figure><figcaption>Resposta média × quantum <small>quanto menor o quantum, mais cedo cada um começa, em ticks</small></figcaption><canvas id="grafico-resposta"></canvas></figure>
+          <figure><figcaption>Trocas de contexto × quantum <small>o preço do rodízio: quantum pequeno, muitas trocas</small></figcaption><canvas id="grafico-trocas"></canvas></figure>
+        </div>
+        <div id="legenda-quantum" class="legenda-cores"></div>
+      </section>
+
+      <section class="painel" aria-labelledby="titulo-porque">
+        <div class="section-heading">
+          <p class="section-number">06</p>
+          <h2 id="titulo-porque">Por que cada um?</h2>
+          <p class="legenda">O que cada algoritmo otimiza e o que ele sacrifica, pensando num canal com muitas pessoas.</p>
+        </div>
+        <div class="cartas">
+          <article class="carta" data-nota="ruim">
+            <p class="carta-selo">✗ NÃO SERVE</p>
+            <h3>FCFS</h3>
+            <p class="carta-sub">First Come, First Served</p>
+            <dl>
+              <dt>Como decide</dt><dd>Fila simples. Quem chegou primeiro roda até o fim.</dd>
+              <dt>Brilha quando</dt><dd>As tarefas são parecidas e só importa terminar (lotes, impressão).</dd>
+              <dt>Falha quando</dt><dd>Chega uma tarefa longa: <b>efeito comboio</b>, e todas as curtas esperam atrás dela.</dd>
+            </dl>
+            <p class="carta-canal">No canal: um textão congela a conversa de todo mundo. Veja o cenário <em>O textão</em>.</p>
+          </article>
+          <article class="carta" data-nota="meh">
+            <p class="carta-selo">⚠ ARRISCADO</p>
+            <h3>SJF</h3>
+            <p class="carta-sub">Shortest Job First</p>
+            <dl>
+              <dt>Como decide</dt><dd>A menor tarefa pronta roda primeiro, até o fim.</dd>
+              <dt>Brilha quando</dt><dd>Se conhece o tamanho de antemão. Tem a <b>menor espera média possível</b> entre os não preemptivos.</dd>
+              <dt>Falha quando</dt><dd>Chegam curtas sem parar: a longa sofre <b>starvation</b>. Também não interrompe quem já começou.</dd>
+            </dl>
+            <p class="carta-canal">No canal: quem escreve mais nunca é atendido. Veja o cenário <em>A fila que não para</em>.</p>
+          </article>
+          <article class="carta" data-nota="bom">
+            <p class="carta-selo">✓ BOM</p>
+            <h3>Round Robin</h3>
+            <p class="carta-sub">rodízio com quantum</p>
+            <dl>
+              <dt>Como decide</dt><dd>Fila circular. Cada um roda no máximo <i>q</i> palavras e volta para o fim.</dd>
+              <dt>Brilha quando</dt><dd>Importa o <b>tempo de resposta</b>: sistemas interativos e muitos usuários.</dd>
+              <dt>Falha quando</dt><dd>Tarefas iguais chegam juntas: alterna à toa, com mais trocas e retorno pior. Veja o cenário <em>Todos iguais</em>.</dd>
+            </dl>
+            <p class="carta-canal">No canal: todo mundo começa a aparecer rápido e ninguém monopoliza.</p>
+          </article>
+          <article class="carta" data-nota="otimo">
+            <p class="carta-selo">★ NOSSA ESCOLHA</p>
+            <h3>RR por usuário</h3>
+            <p class="carta-sub">Round Robin + fair queuing</p>
+            <dl>
+              <dt>Como decide</dt><dd>O rodízio é entre <b>pessoas</b>. Cada usuário tem a sua fila e recebe uma vez por rodada.</dd>
+              <dt>Brilha quando</dt><dd>Alguns usuários mandam muito mais que os outros.</dd>
+              <dt>Falha quando</dt><dd>Herda o custo de trocas do RR, e quem manda muitas mensagens termina mais tarde (de propósito).</dd>
+            </dl>
+            <p class="carta-canal">No canal: quem spamma 5 mensagens não ganha 5× mais CPU. Veja o cenário <em>O usuário insistente</em>.</p>
+          </article>
+        </div>
+        <div class="fora">
+          <p class="microtitulo">FORA DO EXPERIMENTO, MAS VALE CITAR</p>
+          <ul>
+            <li><strong>SRTF</strong> (SJF preemptivo): interrompe quem está rodando se chegar algo menor. É ainda mais injusto com as longas.</li>
+            <li><strong>Prioridade</strong>: útil para moderadores e mensagens do sistema; precisa de <i>aging</i> para evitar starvation.</li>
+            <li><strong>MLFQ</strong> (filas multinível com realimentação): o que Windows, macOS e o Linux antigo usam. É um RR em várias filas que pune quem usa muita CPU.</li>
+            <li><strong>EDF</strong>: para sistemas de tempo real com prazos; não se aplica a um chat.</li>
+          </ul>
+        </div>
+        <div class="escolha">
+          <p class="microtitulo">POR QUE ROUND ROBIN NUM CANAL COM MUITAS PESSOAS</p>
+          <ol>
+            <li><strong>O que importa num chat é a resposta, não o retorno.</strong> Ver a mensagem começar a aparecer rápido vale mais do que todas terminarem um pouco antes, e o RR é o que minimiza a resposta.</li>
+            <li><strong>Ninguém monopoliza.</strong> O quantum limita qualquer mensagem a <i>q</i> palavras por vez, então o comboio do FCFS não acontece.</li>
+            <li><strong>Sem starvation.</strong> Toda mensagem volta à fila e é atendida a cada rodada, ao contrário do SJF.</li>
+            <li><strong>Não precisa prever o futuro.</strong> O SJF exige saber o tamanho antes; o RR funciona sem essa informação.</li>
+            <li><strong>Por usuário é ainda mais justo.</strong> Num canal grande, a unidade de justiça é a pessoa, não a mensagem.</li>
+            <li><strong>O preço é conhecido e ajustável.</strong> Mais trocas de contexto: o quantum (seção 05) regula o equilíbrio entre justiça e overhead.</li>
+          </ol>
+        </div>
+      </section>
+
+      <footer>
+        <p><strong>Nota de método.</strong> Cada mensagem é uma <code>Thread</code> Java real, liberada por um <code>Semaphore</code> próprio; o despachante só libera uma por vez. O tempo é um relógio lógico (1 palavra = 1 tick), então a mesma entrada sempre gera a mesma linha do tempo, sem o ruído do relógio de parede. O Python serviu a parte 1; aqui o servidor é o <code>HttpServer</code> do próprio JDK.</p>
+      </footer>
+    </main>
+    <script src="/static/escalonamento.js"></script>
+  </body>
+</html>
