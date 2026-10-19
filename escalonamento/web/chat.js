@@ -349,7 +349,10 @@
   // Cada personagem fixo tem a sua aparência; quem não está aqui (Eva, Você…) usa o pinguim padrão.
   const APARENCIAS = { Bruno: TUX, Ana: CADU, Carla: CLUB, Davi: PINGU };
   // A mesma escalação em imagens de verdade (escalonamento/web/img), para comparar com os desenhos.
-  const FOTOS = { Bruno: "tux.png", Ana: "cadu.png", Carla: "club-penguin.png", Davi: "pingu.png" };
+  const FOTOS = {
+    Bruno: "tux.png", Ana: "cadu.png", Carla: "club-penguin.png", Davi: "pingu.png",
+    Eva: "pablo.png", "Você": "capitao.png"
+  };
   const ICONES_VISUAL = { desenho: "✏️ desenho", png: "🖼 PNG" };
 
   function desenharPersonagem(usuario) {
