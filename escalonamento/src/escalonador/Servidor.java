@@ -107,7 +107,11 @@ public final class Servidor {
                 // TP3 (rascunho isolado): seção crítica sem e com semáforo.
                 "/secao-critica", new Object[]{"escalonamento/web/secao-critica.html", "text/html; charset=utf-8"},
                 "/static/secao-critica.css", new Object[]{"escalonamento/web/secao-critica.css", "text/css; charset=utf-8"},
-                "/static/secao-critica.js", new Object[]{"escalonamento/web/secao-critica.js", "application/javascript; charset=utf-8"});
+                "/static/secao-critica.js", new Object[]{"escalonamento/web/secao-critica.js", "application/javascript; charset=utf-8"},
+                // Sala do Iglu: o chat de jogo que mostra semáforo e escalonamento com personagens.
+                "/chat", new Object[]{"escalonamento/web/chat.html", "text/html; charset=utf-8"},
+                "/static/chat.css", new Object[]{"escalonamento/web/chat.css", "text/css; charset=utf-8"},
+                "/static/chat.js", new Object[]{"escalonamento/web/chat.js", "application/javascript; charset=utf-8"});
         Object[] arquivo = arquivos.get(caminho);
         Path alvo = arquivo == null ? null : raiz.resolve((String) arquivo[0]);
         if (alvo == null || !Files.isRegularFile(alvo)) {

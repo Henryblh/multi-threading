@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Sala do Iglu: o chat de um jogo para ver, com personagens, o que semáforo e escalonamento fazem com as mensagens de cada jogador.">
+    <title>Sala do Iglu</title>
+    <link rel="stylesheet" href="/static/chat.css">
+  </head>
+  <body>
+    <main class="jogo">
+      <header class="topo">
+        <div>
+          <p class="sobretitulo">JAVA · THREADS · SEMÁFOROS · ESCALONAMENTO</p>
+          <h1>Sala do <span>Iglu</span></h1>
+          <p class="intro">Um chat de jogo com um servidor só. Cada fala é uma thread Java. O Bruno cola uma <strong>bíblia</strong> no chat: veja o que acontece com a sala sem proteção, com semáforo e com cada algoritmo de escalonamento.</p>
+        </div>
+        <nav class="atalhos" aria-label="Outras páginas">
+          <a href="/">Laboratório do Despachante ↗</a>
+          <a href="/secao-critica">Laboratório da Seção Crítica ↗</a>
+        </nav>
+      </header>
+
+      <section aria-labelledby="titulo-fases">
+        <h2 id="titulo-fases" class="sr-only">Escolha a fase</h2>
+        <ol id="fases" class="fases"></ol>
+      </section>
+
+      <section class="palco" aria-label="A sala do jogo">
+        <div class="tela">
+          <div id="sala" class="sala">
+            <div class="hud">
+              <span class="hud-item"><small>tick</small><b id="hud-tick">0</b></span>
+              <span class="hud-item hud-cpu"><small>servidor</small><b id="hud-cpu">parado</b></span>
+              <span id="hud-semaforo" class="hud-item" hidden><small>semáforo</small><b id="hud-semaforo-valor">—</b></span>
+              <span id="hud-contador" class="hud-item" hidden><small>próximo nº do chat</small><b id="hud-contador-valor">—</b></span>
+              <span id="hud-ping" class="hud-item hud-ping" data-nivel="bom"><small>ping da sala</small><b id="hud-ping-valor">20 ms</b></span>
+            </div>
+            <div class="ceu" aria-hidden="true">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <div class="iglu" aria-hidden="true"></div>
+            <div id="jogadores" class="jogadores"></div>
+            <div id="tela-bug" class="tela-bug" hidden>
+              <strong>💥 O CHAT BUGOU</strong>
+              <p id="tela-bug-texto"></p>
+            </div>
+            <p id="lag" class="lag" hidden>⚠ LAG · a sala está travada</p>
+          </div>
+          <div class="controles">
+            <button id="play" class="botao botao-play" type="button">▶ Jogar</button>
+            <button id="inicio" class="botao" type="button" title="Voltar ao início">⏮</button>
+            <button id="voltar" class="botao" type="button" title="Um tick para trás">◀</button>
+            <button id="avancar" class="botao" type="button" title="Um tick para frente">▶</button>
+            <input id="tempo" class="tempo" type="range" min="0" max="0" value="0" aria-label="Tick">
+            <label class="mini">velocidade
+              <select id="velocidade">
+                <option value="650">lenta</option>
+                <option value="320" selected>normal</option>
+                <option value="120">rápida</option>
+              </select>
+            </label>
+            <label class="mini" id="campo-quantum">quantum <output id="quantum-output">4</output>
+              <input id="quantum" type="range" min="1" max="20" value="4">
+            </label>
+          </div>
+        </div>
+
+        <aside class="chat" aria-label="Chat da sala">
+          <header class="chat-topo">
+            <span>💬 Chat da sala</span>
+            <small id="chat-info"></small>
+          </header>
+          <ol id="chat-log" class="chat-log" aria-live="polite"></ol>
+          <form id="form-chat" class="chat-entrada">
+            <select id="quem" aria-label="Quem fala"></select>
+            <input id="texto" type="text" maxlength="1500" placeholder="Diga algo e aperte Enter…" autocomplete="off" aria-label="Mensagem">
+            <label class="mini chegada" title="Tick em que a mensagem chega ao servidor">t=<input id="chegada" type="number" min="0" max="1000" value="2"></label>
+            <button class="botao" type="submit">Enviar</button>
+          </form>
+          <div class="chat-extras">
+            <button id="biblia" class="botao-link" type="button">📜 colar uma bíblia</button>
+            <button id="restaurar" class="botao-link" type="button">↺ restaurar a cena</button>
+          </div>
+          <p id="erro" class="erro" role="alert" hidden></p>
+        </aside>
+      </section>
+
+      <section class="narracao" aria-live="polite">
+        <div class="balao-narrador">
+          <p class="quem-narra"><span id="fase-icone">💥</span> <b id="fase-nome">—</b></p>
+          <p id="licao" class="licao"></p>
+          <p id="agora" class="agora">Aperte ▶ Jogar.</p>
+        </div>
+        <div id="veredito" class="veredito" hidden></div>
+      </section>
+
+      <section id="cenarios-wrap" class="cenarios-wrap" aria-labelledby="titulo-cenarios">
+        <h2 id="titulo-cenarios">Cena</h2>
+        <div id="cenarios" class="cenarios" role="group" aria-label="Cenas prontas"></div>
+      </section>
+
+      <section class="placar" aria-labelledby="titulo-placar">
+        <h2 id="titulo-placar">Placar da sala</h2>
+        <p id="placar-legenda" class="placar-legenda"></p>
+        <div id="placar" class="placar-corpo"></div>
+      </section>
+
+      <footer class="rodape">
+        <p>Por trás da sala está o mesmo backend Java dos laboratórios: nas fases 1 e 2, <code>SecaoCritica.java</code> (threads escrevendo num histórico compartilhado, sem e com semáforo de Dijkstra); nas outras, <code>Despachante.java</code> com a <code>Politica</code> de cada algoritmo. 1 palavra = 1 tick de CPU, e a mesma cena sempre gera o mesmo resultado.</p>
+      </footer>
+    </main>
+    <script src="/static/chat.js"></script>
+  </body>
+</html>

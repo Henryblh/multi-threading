@@ -63,6 +63,10 @@ java -cp escalonamento/out escalonador.Servidor            # playground em http:
 java -cp escalonamento/out escalonador.Servidor --terminal spammer   # Gantt no terminal
 ```
 
+A **Sala do Iglu** (`http://127.0.0.1:8001/chat`) mostra o mesmo backend como o chat de um jogo: cada
+jogador é um personagem com balão de fala, e as fases mostram o chat sem semáforo (falas corrompidas),
+com semáforo e com cada algoritmo de escalonamento (a bíblia do Bruno travando ou não a sala).
+
 Cenários do terminal: `spammer`, `fila`, `insistente`, `iguais`.
 
 Testes:
