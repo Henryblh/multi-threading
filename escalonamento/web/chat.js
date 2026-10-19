@@ -2,7 +2,7 @@
   "use strict";
 
   const $ = (id) => document.getElementById(id);
-  const CORES_FIXAS = { Bruno: "#e2553f", Ana: "#2f8fd6", Carla: "#8a5cd6", Davi: "#2f9e6a", Eva: "#d68a1f", "Você": "#e04a9a" };
+  const CORES_FIXAS = { Bruno: "#e2553f", Ana: "#2f8fd6", Carla: "#8a5cd6", Pingu: "#2f9e6a", Eva: "#d68a1f", "Você": "#e04a9a" };
   const PALETA = ["#159a9c", "#c2456e", "#5b6ee1", "#9c7b2a", "#6c8f2f", "#b5179e"];
 
   // A "bíblia" da corrida cabe no limite da seção crítica (20 palavras).
@@ -15,7 +15,7 @@
     { usuario: "Bruno", chegada: 0, texto: BIBLIA_CURTA },
     { usuario: "Ana", chegada: 21, texto: "oi gente" },
     { usuario: "Carla", chegada: 23, texto: "alguem viu o jogo?" },
-    { usuario: "Davi", chegada: 25, texto: "bom dia pessoal" }
+    { usuario: "Pingu", chegada: 25, texto: "bom dia pessoal" }
   ];
   // Cena do SJF: a bíblia chega com a fila já andando e as falas curtas não param de chegar,
   // então sempre existe alguém menor que ela na fila (starvation).
@@ -24,12 +24,12 @@
     descricao: "Bruno manda a bíblia logo depois da Ana e da Carla, e a sala não para de mandar falas curtinhas.",
     mensagens: [
       ["Ana", 0, "bora jogar hoje"], ["Carla", 1, "bora"], ["Bruno", 2, BIBLIA_CURTA],
-      ["Davi", 3, "to dentro"], ["Eva", 4, "eu tambem"], ["Ana", 6, "que horas?"],
-      ["Carla", 8, "agora"], ["Davi", 10, "fechou"], ["Eva", 12, "criando sala"],
+      ["Pingu", 3, "to dentro"], ["Eva", 4, "eu tambem"], ["Ana", 6, "que horas?"],
+      ["Carla", 8, "agora"], ["Pingu", 10, "fechou"], ["Eva", 12, "criando sala"],
       ["Ana", 14, "link?"], ["Eva", 16, "manda ai"], ["Carla", 18, "entrei"],
-      ["Davi", 20, "eu tambem"], ["Ana", 22, "kkkkkk"], ["Carla", 24, "cade o bruno"],
-      ["Davi", 26, "sei la"], ["Eva", 28, "comecando"], ["Ana", 30, "gg"],
-      ["Carla", 32, "boa"], ["Davi", 34, "bora mais uma"]
+      ["Pingu", 20, "eu tambem"], ["Ana", 22, "kkkkkk"], ["Carla", 24, "cade o bruno"],
+      ["Pingu", 26, "sei la"], ["Eva", 28, "comecando"], ["Ana", 30, "gg"],
+      ["Carla", 32, "boa"], ["Pingu", 34, "bora mais uma"]
     ].map(([usuario, chegada, texto]) => ({ usuario, chegada, texto }))
   };
 
@@ -329,7 +329,7 @@
       ${GELO}
     </svg>`;
 
-  // O Davi é o Pingu: pinguim de massinha, baixinho, olhos pequenos e o bicão do "noot noot".
+  // O Pingu: pinguim de massinha, baixinho, olhos pequenos e o bicão do "noot noot".
   const PINGU = `
     <svg class="pinguim pingu" viewBox="0 0 66 80" aria-hidden="true">
       <ellipse class="sombra" cx="33" cy="76" rx="22" ry="4" fill="#0c223830"/>
@@ -347,10 +347,10 @@
     </svg>`;
 
   // Cada personagem fixo tem a sua aparência; quem não está aqui (Eva, Você…) usa o pinguim padrão.
-  const APARENCIAS = { Bruno: TUX, Ana: CADU, Carla: CLUB, Davi: PINGU };
+  const APARENCIAS = { Bruno: TUX, Ana: CADU, Carla: CLUB, Pingu: PINGU };
   // A mesma escalação em imagens de verdade (escalonamento/web/img), para comparar com os desenhos.
   const FOTOS = {
-    Bruno: "tux.png", Ana: "cadu.png", Carla: "club-penguin.png", Davi: "pingu.png",
+    Bruno: "tux.png", Ana: "cadu.png", Carla: "club-penguin.png", Pingu: "pingu.png",
     Eva: "pablo.png", "Você": "capitao.png"
   };
   const ICONES_VISUAL = { desenho: "✏️ desenho", png: "🖼 PNG" };
