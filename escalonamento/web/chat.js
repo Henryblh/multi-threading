@@ -17,6 +17,21 @@
     { usuario: "Carla", chegada: 23, texto: "alguem viu o jogo?" },
     { usuario: "Davi", chegada: 25, texto: "bom dia pessoal" }
   ];
+  // Cena do SJF: a bíblia chega com a fila já andando e as falas curtas não param de chegar,
+  // então sempre existe alguém menor que ela na fila (starvation).
+  const CENA_SJF = {
+    id: "sjf-fome", nome: "A bíblia no meio da fila",
+    descricao: "Bruno manda a bíblia logo depois da Ana e da Carla, e a sala não para de mandar falas curtinhas.",
+    mensagens: [
+      ["Ana", 0, "bora jogar hoje"], ["Carla", 1, "bora"], ["Bruno", 2, BIBLIA_CURTA],
+      ["Davi", 3, "to dentro"], ["Eva", 4, "eu tambem"], ["Ana", 6, "que horas?"],
+      ["Carla", 8, "agora"], ["Davi", 10, "fechou"], ["Eva", 12, "criando sala"],
+      ["Ana", 14, "link?"], ["Eva", 16, "manda ai"], ["Carla", 18, "entrei"],
+      ["Davi", 20, "eu tambem"], ["Ana", 22, "kkkkkk"], ["Carla", 24, "cade o bruno"],
+      ["Davi", 26, "sei la"], ["Eva", 28, "comecando"], ["Ana", 30, "gg"],
+      ["Carla", 32, "boa"], ["Davi", 34, "bora mais uma"]
+    ].map(([usuario, chegada, texto]) => ({ usuario, chegada, texto }))
+  };
 
   const FASES = [
     {
@@ -35,9 +50,9 @@
       licao: "Agora o servidor tem um despachante: ele libera uma thread por vez (com semáforos) e a política decide quem é a próxima. No FCFS quem chegou primeiro fala até terminar. Se o primeiro é o Bruno com a bíblia, a sala inteira congela atrás dele: é o efeito comboio."
     },
     {
-      id: "sjf", tipo: "escala", icone: "⚡", nome: "SJF",
+      id: "sjf", tipo: "escala", icone: "⚡", nome: "SJF", cena: CENA_SJF.id,
       sub: "a fala mais curta da fila passa na frente",
-      licao: "O SJF escolhe a menor fala entre as que estão esperando, mas não interrompe ninguém. Se a bíblia já começou, todo mundo espera do mesmo jeito. Quando há fila, as curtas passam na frente; se as curtas não param de chegar, a longa nunca sai (teste a cena “A fila que não para”)."
+      licao: "O SJF escolhe a menor fala entre as que estão esperando, mas não interrompe ninguém. Aqui o Bruno não é o primeiro: quando a bíblia chega, a Ana já está com a CPU, e a sala não para de mandar falas curtinhas. Toda vez que a CPU fica livre existe alguém menor que a bíblia na fila, então o Bruno chegou em 3º e fala por último. É a starvation (inanição): a fala longa fica com fome de CPU enquanto as curtas continuarem chegando."
     },
     {
       id: "rr", tipo: "escala", icone: "🔄", nome: "Round Robin",
@@ -64,7 +79,7 @@
     cena: { corrida: CENA_CORRIDA.map((m) => ({ ...m })), escala: [] },
     quantum: { corrida: 2, escala: 4 },
     resultados: { corrida: null, escala: null },
-    frames: [], k: 0, timer: null, cores: new Map(), nos: new Map(), carregando: 0
+    frames: [], k: 0, timer: null, cores: new Map(), nos: new Map(), carregando: 0, linhaTotal: 1
   };
 
   // ---------- utilidades ----------
@@ -412,6 +427,7 @@
     }
 
     desenharChat(quadro, travada, quadro.cpu.usuario);
+    moverCursorLinha(k);
     $("chat-info").textContent = tipo() === "corrida" ? "histórico compartilhado" : `${quadro.chat.length}/${quadro.msgs.length} falas`;
 
     if (animar && anterior && quadro.corrompidas > anterior.corrompidas) {
@@ -424,6 +440,103 @@
     $("agora").textContent = `t=${quadro.t} · ${quadro.legenda || "…"}`;
     $("tempo").value = k;
     desenharFim(ultimo);
+  }
+
+  // ---------- linha do tempo (o Gantt do laboratório, só da fase atual) ----------
+  // Cada quadro k vale o intervalo [k, k+1): trechos seguidos no mesmo estado viram um bloco.
+  function blocoLinha(classe, inicio, fim, corBloco, titulo) {
+    const total = estado.linhaTotal;
+    const node = el("span", classe);
+    node.style.left = (inicio / total * 100) + "%";
+    node.style.width = ((Math.min(fim, total) - inicio) / total * 100) + "%";
+    if (corBloco) node.style.setProperty("--cor", corBloco);
+    if (titulo) node.title = titulo;
+    return node;
+  }
+  function linhaLinha(rotulo, corRotulo, filhos, classe) {
+    const linha = el("div", "g-linha" + (classe ? " " + classe : ""));
+    const nome = el("span", "g-rotulo", rotulo);
+    if (corRotulo) nome.style.setProperty("--cor", corRotulo);
+    const trilha = el("div", "g-trilha");
+    trilha.append(...filhos);
+    linha.append(nome, trilha);
+    return linha;
+  }
+  function trechosSeguidos(valores) {
+    const trechos = [];
+    valores.forEach((valor, k) => {
+      const ultimo = trechos[trechos.length - 1];
+      if (ultimo && ultimo.valor === valor) ultimo.fim = k + 1;
+      else trechos.push({ valor, inicio: k, fim: k + 1 });
+    });
+    return trechos;
+  }
+
+  function desenharLinhaTempo() {
+    const grade = $("linha-grade");
+    grade.replaceChildren();
+    const quadros = estado.frames;
+    estado.linhaTotal = Math.max(1, quadros.length - 1);
+    const total = estado.linhaTotal;
+    grade.style.setProperty("--tick", (100 / total) + "%");
+
+    const f = fase();
+    const q = estado.quantum[f.tipo];
+    $("linha-algoritmo").textContent = f.tipo === "corrida"
+      ? `Round Robin (quantum ${q}) ${f.controle ? "com" : "sem"} semáforo`
+      : NOME_ALGORITMO[f.id] + (f.id === "rr" || f.id === "rr-usuario" ? ` (quantum ${q})` : "");
+    $("linha-legenda").textContent = "Uma linha por mensagem: quando o jogador apertou Enter, quanto tempo ficou parado na fila "
+      + "e em que ticks o servidor deu a CPU para ela. A linha vermelha acompanha o tick da sala.";
+
+    const cpu = trechosSeguidos(quadros.map((quadro) => quadro.cpu.texto === "trocando de contexto"))
+      .filter((t) => t.valor)
+      .map((t) => blocoLinha("g-troca", t.inicio, t.fim, null, `troca de contexto em t=${t.inicio}`));
+    grade.append(linhaLinha("CPU · trocas", null, cpu, "cpu-linha"));
+
+    quadros[0].msgs.forEach((m, i) => {
+      const c = cor(m.usuario);
+      const filhos = [];
+      trechosSeguidos(quadros.map((quadro) => quadro.msgs[i].estado)).forEach((t) => {
+        const faixa = `t=${t.inicio}→${t.fim}`;
+        if (t.valor === "falando") filhos.push(blocoLinha("g-fatia", t.inicio, t.fim, c, `${m.usuario} #${m.id} com a CPU: ${faixa}`));
+        else if (t.valor === "esperando") filhos.push(blocoLinha("g-espera", t.inicio, t.fim, c, `${m.usuario} #${m.id} esperando: ${faixa}`));
+        else if (t.valor === "bloqueada") filhos.push(blocoLinha("g-espera g-bloqueada", t.inicio, t.fim, c, `${m.usuario} #${m.id} bloqueado no semáforo: ${faixa}`));
+      });
+      const chegada = quadros.findIndex((quadro) => quadro.msgs[i].estado !== "ausente");
+      if (chegada >= 0) {
+        const marca = el("span", "g-chegada");
+        marca.style.left = (chegada / total * 100) + "%";
+        marca.style.setProperty("--cor", c);
+        marca.title = `${m.usuario} apertou Enter em t=${quadros[chegada].t}`;
+        filhos.push(marca);
+      }
+      grade.append(linhaLinha(`#${m.id} ${m.usuario}`, c, filhos));
+    });
+
+    const passo = total > 80 ? 10 : 5;
+    const marcas = [];
+    for (let t = 0; t <= total; t += passo) {
+      const marca = el("span", null, String(t));
+      marca.style.left = (t / total * 100) + "%";
+      marcas.push(marca);
+    }
+    grade.append(linhaLinha("tick", null, marcas, "g-eixo"));
+
+    const trilhaCursor = el("div", "g-cursor-trilha");
+    const futuro = el("span", "g-futuro");
+    futuro.id = "linha-futuro";
+    const cursor = el("span", "g-cursor");
+    cursor.id = "linha-cursor";
+    trilhaCursor.append(futuro, cursor);
+    grade.append(trilhaCursor);
+  }
+
+  function moverCursorLinha(k) {
+    const cursor = $("linha-cursor");
+    if (!cursor) return;
+    const posicao = (Math.min(k, estado.linhaTotal) / estado.linhaTotal * 100) + "%";
+    cursor.style.left = posicao;
+    $("linha-futuro").style.left = posicao;
   }
 
   // ---------- veredito ----------
@@ -627,6 +740,7 @@
     estado.frames = tipo() === "corrida" ? quadrosCorrida(r, cena()) : quadrosEscala(r, cena());
     $("tempo").max = estado.frames.length - 1;
     montarSala();
+    desenharLinhaTempo();
     desenharPlacar();
     desenhar(0, false);
     if (tocar) tocarPausar();
@@ -634,8 +748,26 @@
     return true;
   }
 
+  function trocarCenaEscala(id) {
+    const cenario = estado.cenarios.find((c) => c.id === id);
+    if (!cenario) return;
+    estado.cenarioId = cenario.id;
+    estado.cena.escala = cenario.mensagens.map((m) => ({ ...m }));
+    estado.resultados.escala = null;
+    desenharCenarios();
+  }
+
   function escolherFase(indice) {
     const mudouTipo = FASES[indice].tipo !== tipo();
+    // O SJF tem cena própria; ao sair dele, volta a cena que estava antes.
+    const nova = FASES[indice];
+    if (nova.cena && estado.cenarioId !== nova.cena) {
+      estado.cenaAntesDaFase = estado.cenarioId;
+      trocarCenaEscala(nova.cena);
+    } else if (!nova.cena && nova.tipo === "escala" && estado.cenarioId === CENA_SJF.id && estado.cenaAntesDaFase) {
+      trocarCenaEscala(estado.cenaAntesDaFase);
+      estado.cenaAntesDaFase = null;
+    }
     estado.fase = indice;
     if (mudouTipo) $("chegada").value = tipo() === "corrida" ? 22 : 2;
     carregar(true);
@@ -712,7 +844,7 @@
   async function iniciar() {
     try {
       const resposta = await fetch("/api/cenarios");
-      estado.cenarios = (await resposta.json()).cenarios;
+      estado.cenarios = (await resposta.json()).cenarios.concat(CENA_SJF);
       const inicial = estado.cenarios.find((c) => c.id === estado.cenarioId) || estado.cenarios[0];
       estado.cenarioId = inicial.id;
       estado.cena.escala = inicial.mensagens.map((m) => ({ ...m }));

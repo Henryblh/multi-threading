@@ -264,6 +264,54 @@ h1 span { color: var(--amarelo); }
 .veredito h3 { margin: 0 0 6px; font-size: 1.15rem; }
 .veredito p { margin: 6px 0 0; line-height: 1.5; font-size: .9rem; }
 
+/* ---------- linha do tempo (Gantt) ---------- */
+.linha-tempo {
+  margin-top: 18px; padding: 14px 18px;
+  border: 4px solid var(--borda); border-radius: 20px; background: var(--painel); box-shadow: 0 6px 0 var(--borda);
+}
+.linha-tempo h2 { margin: 0; font-size: 1.15rem; }
+.linha-tempo h2 span { color: var(--perigo); }
+.g-chaves { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 10px; padding: 0; font-size: .72rem; font-weight: 700; color: var(--apagado); }
+.g-chaves li { display: inline-flex; align-items: center; gap: 6px; }
+.g-chaves i { display: inline-block; width: 22px; height: 12px; border-radius: 3px; }
+.chave-fatia { background: var(--borda); }
+.chave-espera { background: repeating-linear-gradient(135deg, #5f6b7466 0 3px, transparent 3px 6px); border: 1px dashed var(--apagado); }
+.chave-bloqueada { background: repeating-linear-gradient(135deg, #e2553f66 0 3px, transparent 3px 6px); border: 1px dashed var(--perigo); }
+.chave-troca { width: 6px !important; background: var(--tinta); }
+.g-chaves .chave-chegada { width: 0; height: 0; border-radius: 0; border: 6px solid transparent; border-top: 9px solid var(--borda); border-bottom: 0; }
+.linha-corpo { overflow-x: auto; border: 3px solid var(--borda); border-radius: 14px; background: #fff; }
+.g-grade { position: relative; min-width: 640px; padding: 8px 0 4px; }
+.g-linha { display: grid; grid-template-columns: 110px 1fr; align-items: center; min-height: 24px; }
+.g-rotulo {
+  padding: 0 8px; font-size: .72rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-left: 6px solid var(--cor, transparent);
+}
+.g-trilha {
+  position: relative; height: 20px; margin-right: 14px;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(var(--tick) * 5 - 1px), #c6dff088 calc(var(--tick) * 5 - 1px) calc(var(--tick) * 5));
+}
+.g-espera {
+  position: absolute; top: 4px; bottom: 4px; border-radius: 3px;
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--cor) 35%, transparent) 0 3px, transparent 3px 6px);
+  border: 1px dashed color-mix(in srgb, var(--cor) 70%, transparent);
+}
+.g-bloqueada {
+  background: repeating-linear-gradient(135deg, #e2553f55 0 3px, transparent 3px 6px);
+  border: 1px dashed var(--perigo);
+}
+.g-fatia { position: absolute; top: 1px; bottom: 1px; border-radius: 4px; background: var(--cor); border: 2px solid var(--borda); }
+.g-troca { position: absolute; top: 3px; bottom: 3px; min-width: 2px; background: var(--tinta); }
+.g-chegada {
+  position: absolute; top: -4px; transform: translateX(-50%); width: 0; height: 0;
+  border: 6px solid transparent; border-top: 9px solid var(--cor); border-bottom: 0; z-index: 1;
+}
+.g-linha.cpu-linha .g-rotulo { color: var(--apagado); }
+.g-eixo .g-trilha { background: none; height: 16px; }
+.g-eixo .g-trilha span { position: absolute; transform: translateX(-50%); font-size: .62rem; font-weight: 700; color: var(--apagado); }
+.g-cursor-trilha { position: absolute; top: 0; bottom: 0; left: 110px; right: 14px; pointer-events: none; }
+.g-cursor { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--perigo); transition: left .15s linear; }
+.g-futuro { position: absolute; top: 0; bottom: 0; right: 0; background: #ffffffb3; transition: left .15s linear; }
+
 /* ---------- cenas e placar ---------- */
 .cenarios-wrap, .placar { margin-top: 18px; padding: 14px 18px; }
 .cenarios-wrap h2, .placar h2 { margin: 0; font-size: 1.15rem; }
@@ -336,5 +384,7 @@ h1 span { color: var(--amarelo); }
   .balao { max-width: 150px; font-size: .72rem; }
   .iglu { display: none; }
   .hud-cpu { min-width: 0; }
+  .g-linha { grid-template-columns: 80px 1fr; }
+  .g-cursor-trilha { left: 80px; }
   .lag { position: relative; left: auto; bottom: auto; transform: none; display: block; width: fit-content; margin: -14px auto 12px; }
 }

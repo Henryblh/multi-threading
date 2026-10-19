@@ -95,6 +95,21 @@
         <div id="veredito" class="veredito" hidden></div>
       </section>
 
+      <section class="linha-tempo" aria-labelledby="titulo-linha">
+        <h2 id="titulo-linha">Linha do tempo · <span id="linha-algoritmo">—</span></h2>
+        <p id="linha-legenda" class="placar-legenda"></p>
+        <ul class="g-chaves" aria-label="Legenda">
+          <li><i class="chave-fatia"></i> com a CPU</li>
+          <li><i class="chave-espera"></i> esperando na fila</li>
+          <li><i class="chave-bloqueada"></i> bloqueado no semáforo</li>
+          <li><i class="chave-troca"></i> troca de contexto</li>
+          <li><i class="chave-chegada"></i> apertou Enter</li>
+        </ul>
+        <div class="linha-corpo">
+          <div id="linha-grade" class="g-grade"></div>
+        </div>
+      </section>
+
       <section id="cenarios-wrap" class="cenarios-wrap" aria-labelledby="titulo-cenarios">
         <h2 id="titulo-cenarios">Cena</h2>
         <div id="cenarios" class="cenarios" role="group" aria-label="Cenas prontas"></div>
