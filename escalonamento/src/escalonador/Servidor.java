@@ -78,6 +78,8 @@ public final class Servidor {
                     servirGet(troca, caminho);
                 } else if (metodo.equals("POST") && caminho.equals("/api/escalonar")) {
                     responderJson(troca, 200, escalonar(lerCorpo(troca)));
+                } else if (metodo.equals("POST") && caminho.equals("/api/secao-critica")) {
+                    responderJson(troca, 200, secaoCritica(lerCorpo(troca)));
                 } else {
                     responderJson(troca, 404, Map.of("error", "Rota não encontrada."));
                 }
@@ -101,7 +103,11 @@ public final class Servidor {
                 // A folha de estilo do laboratório da parte 1 é compartilhada para manter a mesma estética.
                 "/static/styles.css", new Object[]{"web/styles.css", "text/css; charset=utf-8"},
                 "/static/escalonamento.css", new Object[]{"escalonamento/web/escalonamento.css", "text/css; charset=utf-8"},
-                "/static/escalonamento.js", new Object[]{"escalonamento/web/escalonamento.js", "application/javascript; charset=utf-8"});
+                "/static/escalonamento.js", new Object[]{"escalonamento/web/escalonamento.js", "application/javascript; charset=utf-8"},
+                // TP3 (rascunho isolado): seção crítica sem e com semáforo.
+                "/secao-critica", new Object[]{"escalonamento/web/secao-critica.html", "text/html; charset=utf-8"},
+                "/static/secao-critica.css", new Object[]{"escalonamento/web/secao-critica.css", "text/css; charset=utf-8"},
+                "/static/secao-critica.js", new Object[]{"escalonamento/web/secao-critica.js", "application/javascript; charset=utf-8"});
         Object[] arquivo = arquivos.get(caminho);
         Path alvo = arquivo == null ? null : raiz.resolve((String) arquivo[0]);
         if (alvo == null || !Files.isRegularFile(alvo)) {
@@ -148,6 +154,25 @@ public final class Servidor {
         resposta.put("custo_troca", custoTroca);
         resposta.put("resultados", resultados);
         return resposta;
+    }
+
+    /** TP3: roda a seção crítica do chat com ou sem semáforo. */
+    static Map<String, Object> secaoCritica(Object corpo) throws InterruptedException {
+        if (!(corpo instanceof Map<?, ?> dados)) {
+            throw new IllegalArgumentException("O corpo precisa ser um objeto JSON.");
+        }
+        List<Mensagem> mensagens = mensagensDe(dados.get("mensagens"));
+        if (mensagens.size() > 8 || mensagens.stream().anyMatch(m -> m.burst() > 20)) {
+            throw new IllegalArgumentException("Use até 8 mensagens de até 20 palavras.");
+        }
+        if (!(dados.get("algoritmo") instanceof String algoritmo) || !List.of("fcfs", "rr").contains(algoritmo)) {
+            throw new IllegalArgumentException("algoritmo precisa ser fcfs ou rr.");
+        }
+        if (!(dados.get("controle") instanceof Boolean controle)) {
+            throw new IllegalArgumentException("controle precisa ser true ou false.");
+        }
+        return SecaoCritica.executar(mensagens, algoritmo, inteiro(dados, "quantum", 2, 1, 30), controle,
+                inteiro(dados, "id_inicial", 7, 0, 999));
     }
 
     static List<Mensagem> mensagensDe(Object valor) {

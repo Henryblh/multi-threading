@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="TP3: condição de corrida na seção crítica de um chat, sem e com semáforo, com threads Java.">
+    <title>Laboratório da Seção Crítica</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/escalonamento.css">
+    <link rel="stylesheet" href="/static/secao-critica.css">
+  </head>
+  <body>
+    <main class="laboratorio">
+      <header class="masthead">
+        <p class="eyebrow">JAVA / TP3 / SEMÁFOROS · RASCUNHO ISOLADO</p>
+        <div class="masthead-row">
+          <div>
+            <h1>Laboratório da<br><em>Seção Crítica</em></h1>
+            <p class="intro">Cada mensagem primeiro é digitada num rascunho local, fora da seção crítica. Depois é publicada: lê o próximo número livre, escreve no histórico e grava o número seguinte. Se o escalonador tirar a CPU <strong>no meio da publicação</strong>, duas mensagens leem o mesmo número. Isso é condição de corrida, mesmo com uma CPU só. O semáforo protege só a publicação; o resto continua no rodízio.</p>
+          </div>
+          <aside class="aviso">
+            <span class="lamp" aria-hidden="true"></span>
+            <strong>Rascunho para discutir</strong>
+            <p>Esta página é separada do <a href="/">Laboratório do Despachante</a> e ainda não faz parte dele.</p>
+          </aside>
+        </div>
+      </header>
+
+      <section class="painel controle" aria-labelledby="titulo-montar">
+        <div class="section-heading">
+          <p class="section-number">01</p>
+          <h2 id="titulo-montar">Monte o experimento</h2>
+          <p class="legenda">1 passo = 1 tick. Fora da seção crítica: digitar cada palavra. Dentro: ler o id, escrever cada palavra, gravar o próximo id.</p>
+        </div>
+        <div class="canal-grid">
+          <div class="mensagens-wrap">
+            <table class="mensagens">
+              <thead><tr><th>#</th><th>usuário</th><th>chegada</th><th>mensagem</th><th>passos</th><th><span class="sr-only">remover</span></th></tr></thead>
+              <tbody id="mensagens"></tbody>
+            </table>
+            <button id="adicionar" class="botao-secundario" type="button">+ mensagem</button>
+          </div>
+          <div class="controles-numericos">
+            <div class="campo">
+              <span>Proteção da seção crítica</span>
+              <div class="alternador" role="group" aria-label="Proteção">
+                <button type="button" data-controle="false" aria-pressed="true">Sem semáforo</button>
+                <button type="button" data-controle="true" aria-pressed="false">Com semáforo</button>
+              </div>
+            </div>
+            <div class="campo">
+              <span>Escalonador</span>
+              <div class="alternador" role="group" aria-label="Escalonador">
+                <button type="button" data-algoritmo="rr" aria-pressed="true">Round Robin</button>
+                <button type="button" data-algoritmo="fcfs" aria-pressed="false">FCFS</button>
+              </div>
+            </div>
+            <label class="campo">
+              <span>Quantum (RR) <output id="quantum-output">2 passos</output></span>
+              <input id="quantum" type="range" min="1" max="10" value="2">
+            </label>
+            <label class="campo repeticoes">
+              <span>proximoId inicial</span>
+              <input id="id-inicial" type="number" min="0" max="999" value="7">
+            </label>
+          </div>
+        </div>
+        <div class="acoes">
+          <button id="executar" class="botao-principal" type="button">Executar <span aria-hidden="true">↗</span></button>
+          <p id="status" class="status" role="status" aria-live="polite">Comece sem semáforo e com Round Robin para ver o erro.</p>
+        </div>
+      </section>
+
+      <section class="painel" aria-labelledby="titulo-passo">
+        <div class="section-heading">
+          <p class="section-number">02</p>
+          <h2 id="titulo-passo">Passo a passo</h2>
+          <p class="legenda">Pause no instante em que duas threads leem o mesmo proximoId.</p>
+        </div>
+        <div class="player">
+          <button id="play" class="botao-principal" type="button" disabled>▶ Reproduzir</button>
+          <button id="voltar" class="botao-secundario" type="button" disabled>◀ passo</button>
+          <button id="avancar" class="botao-secundario" type="button" disabled>passo ▶</button>
+          <label class="velocidade">velocidade
+            <select id="velocidade">
+              <option value="1100">lenta</option>
+              <option value="600" selected>normal</option>
+              <option value="250">rápida</option>
+            </select>
+          </label>
+          <input id="tempo" class="tempo" type="range" min="0" max="0" value="0" aria-label="Instante" disabled>
+          <p class="relogio">t = <strong id="relogio">0</strong></p>
+        </div>
+        <p id="agora" class="agora">Execute o experimento.</p>
+        <div class="bancada">
+          <article class="caixa">
+            <p class="microtitulo">CÓDIGO DE CADA THREAD</p>
+            <pre id="codigo" class="codigo"><span data-passo="DIGITAR">for (palavra : mensagem)
+    rascunho.add(palavra);        <i>// fora: só memória local</i></span>
+<span data-passo="P">semaforo.P();                    <i>// espera a vez</i></span>
+<span class="sc-borda">// ─────────── seção crítica ───────────</span>
+<span data-passo="LER">int id = canal.proximoId;         <i>// 1. lê</i></span>
+<span data-passo="ESCREVER">for (palavra : mensagem)
+    historico[id][k] = palavra;   <i>// 2. escreve</i></span>
+<span data-passo="GRAVAR">canal.proximoId = id + 1;        <i>// 3. grava</i></span>
+<span class="sc-borda">// ─────────────────────────────────────</span>
+<span data-passo="V">semaforo.V();                    <i>// libera e acorda</i></span></pre>
+          </article>
+          <article class="caixa">
+            <p class="microtitulo">THREADS</p>
+            <ul id="threads" class="threads"></ul>
+          </article>
+          <article class="caixa memoria">
+            <p class="microtitulo">MEMÓRIA COMPARTILHADA</p>
+            <div class="contador">
+              <span>canal.proximoId</span>
+              <strong id="proximo-id">—</strong>
+              <small id="proximo-esperado"></small>
+            </div>
+            <div id="semaforo" class="semaforo">
+              <span>semáforo</span>
+              <strong id="semaforo-valor">—</strong>
+              <div><small>bloqueadas:</small> <span id="semaforo-fila" class="fila-chips"></span></div>
+            </div>
+            <p class="microtitulo">HISTÓRICO</p>
+            <ol id="historico" class="historico"></ol>
+          </article>
+        </div>
+        <div class="log-wrap">
+          <p class="microtitulo">O QUE ACONTECEU</p>
+          <ol id="log" class="log"></ol>
+        </div>
+      </section>
+
+      <section class="painel" aria-labelledby="titulo-linha">
+        <div class="section-heading">
+          <p class="section-number">03</p>
+          <h2 id="titulo-linha">Linha do tempo</h2>
+          <p class="legenda">D = digita (fora da seção crítica, tom claro). L = lê, E = escreve, G = grava (dentro). Hachurado: pronta na fila. Escuro: bloqueada no semáforo.</p>
+        </div>
+        <div id="linha" class="linha-wrap"><p class="vazio">A linha do tempo aparecerá aqui.</p></div>
+      </section>
+
+      <section class="resultado-grid" aria-labelledby="titulo-veredito">
+        <div class="texto-comparado">
+          <div class="section-heading">
+            <p class="section-number">04</p>
+            <h2 id="titulo-veredito">Conferência</h2>
+          </div>
+          <ul id="conferencia" class="conferencia"><li>Execute para conferir o resultado.</li></ul>
+        </div>
+        <aside class="placar">
+          <p class="microtitulo">RESULTADO</p>
+          <p id="selo" class="selo">—</p>
+          <p id="selo-texto" class="interpretacao"></p>
+        </aside>
+      </section>
+
+      <section class="painel comparador" aria-labelledby="titulo-matriz">
+        <div class="section-heading">
+          <p class="section-number">05</p>
+          <h2 id="titulo-matriz">Escalonador × proteção</h2>
+          <p class="legenda">As mesmas mensagens e o mesmo quantum nas quatro combinações.</p>
+        </div>
+        <div id="matriz" class="matriz"><p class="vazio">Execute o experimento para preencher.</p></div>
+        <p class="nota-matriz">O FCFS nunca interrompe uma thread, então o erro não aparece. Isso é <strong>sorte do escalonador, não proteção</strong>: com Round Robin, ou com dois núcleos, ele volta. Só o semáforo garante o resultado certo em qualquer escalonador.</p>
+      </section>
+
+      <section class="painel comparador" aria-labelledby="titulo-detalhes">
+        <div class="section-heading">
+          <p class="section-number">06</p>
+          <h2 id="titulo-detalhes">O escalonamento continua valendo</h2>
+          <p class="legenda">FCFS e Round Robin com a mesma proteção escolhida na seção 01. O semáforo só serializa a publicação.</p>
+        </div>
+        <div id="detalhes-linhas" class="detalhes-linhas"><p class="vazio">Execute o experimento para comparar.</p></div>
+        <div class="table-wrap">
+          <table class="placar-tabela">
+            <thead><tr>
+              <th>algoritmo</th>
+              <th title="início - chegada: quanto demora para a primeira palavra ser digitada">resposta média</th>
+              <th title="tempo fora da CPU: na fila ou bloqueada">espera média</th>
+              <th title="término - chegada">retorno médio</th>
+              <th>trocas</th>
+              <th>bloqueios</th>
+              <th title="soma dos ticks que as threads passaram bloqueadas no semáforo">tempo bloqueado</th>
+              <th>tempo total</th>
+              <th>ordem de publicação</th>
+            </tr></thead>
+            <tbody id="detalhes-placar"><tr><td colspan="9">Os números aparecerão aqui.</td></tr></tbody>
+          </table>
+        </div>
+        <div id="detalhes-barras" class="barras"></div>
+        <p id="detalhes-texto" class="nota-matriz detalhes-texto" hidden></p>
+      </section>
+
+      <section class="painel comparador" aria-labelledby="titulo-curva">
+        <div class="section-heading">
+          <p class="section-number">07</p>
+          <h2 id="titulo-curva">Varra o quantum</h2>
+          <p class="legenda">Round Robin com quantum de 1 a 10, sem e com semáforo. A linha tracejada é o FCFS.</p>
+        </div>
+        <div class="compare-controls">
+          <button id="varrer" class="botao-principal" type="button">Varrer quantum 1 → 10 <span aria-hidden="true">↗</span></button>
+          <p id="varrer-status" class="status" role="status" aria-live="polite">Usa as mensagens da seção 01.</p>
+        </div>
+        <div class="graficos">
+          <figure><figcaption>Mensagens que não chegaram inteiras <small>a correção: só o semáforo zera em qualquer quantum</small></figcaption><canvas id="grafico"></canvas></figure>
+          <figure><figcaption>Resposta média × quantum <small>o comportamento: com semáforo o RR continua respondendo antes do FCFS</small></figcaption><canvas id="grafico-resposta"></canvas></figure>
+        </div>
+        <div id="legenda-curva" class="legenda-cores"></div>
+      </section>
+
+      <footer>
+        <p><strong>Nota de método.</strong> Cada mensagem é uma <code>Thread</code> Java real executando o código acima sobre memória compartilhada de verdade. O despachante concede um passo por vez e decide onde trocar de thread, então a mesma entrada sempre gera o mesmo erro, no mesmo tick. O semáforo é o de Dijkstra (contador + fila de bloqueados), simulado pelo despachante para que dê para vê-lo por dentro. Para o erro com threads livres e não determinístico, veja o <code>CanalDeRadio.java</code> da branch <code>feat/semaforos-tp3</code>.</p>
+      </footer>
+    </main>
+    <script src="/static/secao-critica.js"></script>
+  </body>
+</html>
