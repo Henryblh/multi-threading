@@ -15,7 +15,7 @@
     { usuario: "Bruno", chegada: 0, texto: BIBLIA_CURTA },
     { usuario: "Ana", chegada: 21, texto: "oi gente" },
     { usuario: "Carla", chegada: 23, texto: "alguem viu o jogo?" },
-    { usuario: "Pingu", chegada: 25, texto: "bom dia pessoal" }
+    { usuario: "Pingu", chegada: 25, texto: "noot noot" }
   ];
   // Cena do SJF: a bíblia chega com a fila já andando e as falas curtas não param de chegar,
   // então sempre existe alguém menor que ela na fila (starvation).
@@ -24,12 +24,12 @@
     descricao: "Bruno manda a bíblia logo depois da Ana e da Carla, e a sala não para de mandar falas curtinhas.",
     mensagens: [
       ["Ana", 0, "bora jogar hoje"], ["Carla", 1, "bora"], ["Bruno", 2, BIBLIA_CURTA],
-      ["Pingu", 3, "to dentro"], ["Eva", 4, "eu tambem"], ["Ana", 6, "que horas?"],
-      ["Carla", 8, "agora"], ["Pingu", 10, "fechou"], ["Eva", 12, "criando sala"],
+      ["Pingu", 3, "noot noot"], ["Eva", 4, "eu tambem"], ["Ana", 6, "que horas?"],
+      ["Carla", 8, "agora"], ["Pingu", 10, "noot noot"], ["Eva", 12, "criando sala"],
       ["Ana", 14, "link?"], ["Eva", 16, "manda ai"], ["Carla", 18, "entrei"],
-      ["Pingu", 20, "eu tambem"], ["Ana", 22, "kkkkkk"], ["Carla", 24, "cade o bruno"],
-      ["Pingu", 26, "sei la"], ["Eva", 28, "comecando"], ["Ana", 30, "gg"],
-      ["Carla", 32, "boa"], ["Pingu", 34, "bora mais uma"]
+      ["Pingu", 20, "noot noot"], ["Ana", 22, "kkkkkk"], ["Carla", 24, "cade o bruno"],
+      ["Pingu", 26, "noot noot"], ["Eva", 28, "comecando"], ["Ana", 30, "gg"],
+      ["Carla", 32, "boa"], ["Pingu", 34, "noot noot"]
     ].map(([usuario, chegada, texto]) => ({ usuario, chegada, texto }))
   };
 

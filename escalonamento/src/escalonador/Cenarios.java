@@ -48,7 +48,7 @@ public final class Cenarios {
                                 + "partidas pontuacao criterios de desempate e punicoes para quem faltar sem avisar",
                         "Ana", 1, "oi gente",
                         "Carla", 2, "alguem viu o jogo ontem?",
-                        "Pingu", 3, "bom dia pessoal",
+                        "Pingu", 3, "noot noot",
                         "Ana", 5, "kkkkkk"));
     }
 
@@ -61,15 +61,15 @@ public final class Cenarios {
                         "Ana", 0, "opa tudo certo",
                         "Bruno", 1, "alguem consegue me ajudar com a configuracao do servidor que caiu de novo hoje cedo",
                         "Carla", 2, "bora jogar",
-                        "Pingu", 4, "to dentro",
+                        "Pingu", 4, "noot noot",
                         "Eva", 6, "eu tambem",
                         "Ana", 8, "que horas?",
                         "Carla", 10, "agora mesmo",
-                        "Pingu", 12, "fechou entao",
+                        "Pingu", 12, "noot noot",
                         "Eva", 14, "criando sala",
                         "Ana", 16, "link aqui",
                         "Carla", 18, "entrei ja",
-                        "Pingu", 20, "bora bora"));
+                        "Pingu", 20, "noot noot"));
     }
 
     /** Justiça entre pessoas: no RR comum, quem manda várias mensagens ganha várias vezes. */
@@ -96,7 +96,7 @@ public final class Cenarios {
                         "Ana", 0, "esta e uma mensagem com exatamente oito palavras",
                         "Bruno", 0, "esta outra mensagem tem exatamente oito palavras tambem",
                         "Carla", 0, "e mais uma mensagem com exatamente oito palavras",
-                        "Pingu", 0, "a ultima mensagem tambem com exatamente oito palavras"));
+                        "Pingu", 0, "noot noot noot noot noot noot noot noot"));
     }
 
     /** Recebe triplas (usuário, chegada, texto) e numera as mensagens na ordem dada. */
