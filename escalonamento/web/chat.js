@@ -278,6 +278,77 @@
       <path class="gelo" d="M10 16 L18 12 M48 64 L56 58" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
     </svg>`;
 
+  const GELO = `
+      <rect class="gelo" x="3" y="8" width="60" height="70" rx="8" fill="#bfe8ffb3" stroke="#6fbbe6" stroke-width="2.5"/>
+      <path class="gelo" d="M10 16 L18 12 M48 64 L56 58" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`;
+
+  // A Ana é o Cadu Maverick: pinguim-saltador surfista, com topete, colar de dente de tubarão e prancha.
+  const CADU = `
+    <svg class="pinguim cadu" viewBox="0 0 66 80" aria-hidden="true">
+      <ellipse class="sombra" cx="33" cy="76" rx="24" ry="4" fill="#0c223830"/>
+      <g transform="rotate(14 55 42)">
+        <ellipse cx="55" cy="42" rx="7.5" ry="31" fill="#f7d046" stroke="#0c2238" stroke-width="2.5"/>
+        <path d="M55 13 V71" stroke="#e2553f" stroke-width="3"/>
+      </g>
+      <path d="M12 40 C4 46 5 56 9 60 C12 54 13 47 14 42Z" fill="#2c3646" stroke="#0c2238" stroke-width="2.5"/>
+      <path d="M8 3 L18 9 L13 1 L24 7 L22 -1 L30 7Z" fill="#2c3646" stroke="#0c2238" stroke-width="2" stroke-linejoin="round" transform="translate(4 3)"/>
+      <path d="M31 6 C17 6 12 22 12 42 C12 62 19 73 31 73 C43 73 50 62 50 42 C50 22 45 6 31 6Z" fill="#2c3646" stroke="#0c2238" stroke-width="2.5"/>
+      <path d="M50 40 C56 42 58 48 57 53 C53 51 50 47 49 44Z" fill="#2c3646" stroke="#0c2238" stroke-width="2.5"/>
+      <path d="M31 27 C21 27 18 39 18 49 C18 61 24 68 31 68 C38 68 44 61 44 49 C44 39 41 27 31 27Z" fill="#fff"/>
+      <ellipse cx="25" cy="19" rx="5" ry="6" fill="#fff"/><ellipse cx="37" cy="19" rx="5" ry="6" fill="#fff"/>
+      <circle cx="26" cy="20.5" r="2.7" fill="#172127"/><circle cx="36" cy="20.5" r="2.7" fill="#172127"/>
+      <path d="M20 16 C22 14 27 14 30 16 M32 16 C35 14 40 14 42 16" fill="none" stroke="#0c2238" stroke-width="2" stroke-linecap="round"/>
+      <path d="M25 26 L37 26 L31 33Z" fill="#f08a24" stroke="#0c2238" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M21 33 C25 38 37 38 41 33" fill="none" stroke="#7a5230" stroke-width="1.6"/>
+      <path d="M28.5 36.5 L33.5 36.5 L31 43Z" fill="#fffbe8" stroke="#0c2238" stroke-width="1.2" stroke-linejoin="round"/>
+      <ellipse cx="23" cy="74" rx="7" ry="3.2" fill="#f2a08a" stroke="#0c2238" stroke-width="1.5"/>
+      <ellipse cx="39" cy="74" rx="7" ry="3.2" fill="#f2a08a" stroke="#0c2238" stroke-width="1.5"/>
+      ${GELO}
+    </svg>`;
+
+  // A Carla é uma pinguim do Club Penguin: corpo redondo da cor dela, máscara branca e boné de hélice.
+  const CLUB = `
+    <svg class="pinguim club" viewBox="0 0 66 80" aria-hidden="true">
+      <ellipse class="sombra" cx="33" cy="76" rx="24" ry="4" fill="#0c223830"/>
+      <path d="M10 42 C2 48 3 58 8 62 C11 56 12 49 12 44Z" fill="var(--cor)" stroke="#0c2238" stroke-width="2.5"/>
+      <path d="M56 42 C64 48 63 58 58 62 C55 56 54 49 54 44Z" fill="var(--cor)" stroke="#0c2238" stroke-width="2.5"/>
+      <path d="M33 8 C17 8 9 24 9 45 C9 64 19 74 33 74 C47 74 57 64 57 45 C57 24 49 8 33 8Z" fill="var(--cor)" stroke="#0c2238" stroke-width="2.5"/>
+      <path d="M33 33 C26 33 18 29 18 21 C18 15 24 13 28 15.5 C30.5 17 32 18.5 33 19.5 C34 18.5 35.5 17 38 15.5 C42 13 48 15 48 21 C48 29 40 33 33 33Z" fill="#fff"/>
+      <ellipse cx="33" cy="55" rx="15" ry="15.5" fill="#fff"/>
+      <ellipse cx="27" cy="21.5" rx="2.8" ry="3.8" fill="#111"/><ellipse cx="39" cy="21.5" rx="2.8" ry="3.8" fill="#111"/>
+      <circle cx="27.8" cy="20.2" r=".9" fill="#fff"/><circle cx="39.8" cy="20.2" r=".9" fill="#fff"/>
+      <path d="M28.5 26 L37.5 26 L33 31.5Z" fill="#f7a823" stroke="#0c2238" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M17 14 C18 8 25 4.5 33 4.5 L33 14Z" fill="#f6c429" stroke="#0c2238" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M33 4.5 C41 4.5 48 8 49 14 L33 14Z" fill="#2f8fd6" stroke="#0c2238" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M16 14.5 H50" stroke="#e2553f" stroke-width="3" stroke-linecap="round"/>
+      <path d="M33 4.5 V0" stroke="#0c2238" stroke-width="2"/>
+      <ellipse cx="27" cy="0" rx="6" ry="1.8" fill="#e2553f" stroke="#0c2238" stroke-width="1.2"/>
+      <ellipse cx="39" cy="0" rx="6" ry="1.8" fill="#2f9e6a" stroke="#0c2238" stroke-width="1.2"/>
+      <ellipse cx="24" cy="74" rx="7.5" ry="3.2" fill="#f7a823" stroke="#0c2238" stroke-width="1.5"/>
+      <ellipse cx="42" cy="74" rx="7.5" ry="3.2" fill="#f7a823" stroke="#0c2238" stroke-width="1.5"/>
+      ${GELO}
+    </svg>`;
+
+  // O Davi é o Pingu: pinguim de massinha, baixinho, olhos pequenos e o bicão do "noot noot".
+  const PINGU = `
+    <svg class="pinguim pingu" viewBox="0 0 66 80" aria-hidden="true">
+      <ellipse class="sombra" cx="33" cy="76" rx="22" ry="4" fill="#0c223830"/>
+      <path d="M11 44 C4 49 5 58 9 61 C12 56 13 50 14 46Z" fill="#202027" stroke="#0c2238" stroke-width="2.5"/>
+      <path d="M55 44 C62 49 61 58 57 61 C54 56 53 50 52 46Z" fill="#202027" stroke="#0c2238" stroke-width="2.5"/>
+      <path d="M33 12 C20 12 13 24 13 44 C13 63 21 73 33 73 C45 73 53 63 53 44 C53 24 46 12 33 12Z" fill="#202027" stroke="#0c2238" stroke-width="2.5"/>
+      <path d="M33 34 C23 34 18 45 18 54 C18 64 25 69 33 69 C41 69 48 64 48 54 C48 45 43 34 33 34Z" fill="#f7f3ea"/>
+      <circle cx="28" cy="22" r="4.3" fill="#fff"/><circle cx="38" cy="22" r="4.3" fill="#fff"/>
+      <circle cx="29" cy="22.5" r="2" fill="#111"/><circle cx="37" cy="22.5" r="2" fill="#111"/>
+      <path d="M21 29 C24 25.5 42 25.5 45 29 C44 34 38 36 33 36 C28 36 22 34 21 29Z" fill="#e8562a" stroke="#0c2238" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M23.5 30.5 C28 32.5 38 32.5 42.5 30.5" fill="none" stroke="#a83616" stroke-width="1.3"/>
+      <ellipse cx="25" cy="74" rx="7" ry="3" fill="#e8562a" stroke="#0c2238" stroke-width="1.5"/>
+      <ellipse cx="41" cy="74" rx="7" ry="3" fill="#e8562a" stroke="#0c2238" stroke-width="1.5"/>
+      ${GELO}
+    </svg>`;
+
+  // Cada personagem fixo tem a sua aparência; quem não está aqui (Eva, Você…) usa o pinguim padrão.
+  const APARENCIAS = { Bruno: TUX, Ana: CADU, Carla: CLUB, Davi: PINGU };
+
   function montarSala() {
     const host = $("jogadores");
     host.replaceChildren();
@@ -296,7 +367,7 @@
       const humorNo = el("span", "humor");
       const fila = el("span", "fila-extra");
       const corpo = el("div");
-      corpo.innerHTML = usuario === "Bruno" ? TUX : PINGUIM;
+      corpo.innerHTML = APARENCIAS[usuario] || PINGUIM;
       const status = el("span", "status");
       raiz.append(balao, humorNo, fila, corpo.firstElementChild, el("span", "nome", usuario), status);
       host.append(raiz);
