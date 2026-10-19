@@ -139,7 +139,7 @@ h1 span { color: var(--amarelo); }
   background: var(--cor); color: #fff; font-size: .8rem; font-weight: 800;
 }
 .status { margin-top: 4px; font-size: .7rem; font-weight: 700; color: #29404f; text-align: center; min-height: 1.1em; }
-.humor { position: absolute; right: 12px; bottom: 84px; font-size: 1.25rem; z-index: 2; }
+.humor { position: absolute; right: 2px; bottom: 90px; font-size: 1.25rem; z-index: 2; }
 .jogador[data-humor="congelado"] .gelo { opacity: 1; }
 .gelo { opacity: 0; transition: opacity .3s; }
 .fila-extra {

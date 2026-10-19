@@ -260,6 +260,24 @@
       <path class="gelo" d="M10 16 L18 12 M48 64 L56 58" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
     </svg>`;
 
+  // O Bruno é o pinguim do Linux: corpo preto em forma de pera, barriga clara, bico e pés amarelos.
+  const TUX = `
+    <svg class="pinguim tux" viewBox="0 0 66 80" aria-hidden="true">
+      <ellipse class="sombra" cx="33" cy="76" rx="25" ry="4" fill="#0c223830"/>
+      <path d="M33 3 C19 3 15 15 15 26 C15 32 12 37 8 44 C3 53 5 65 13 70 C20 75 46 75 53 70 C61 65 63 53 58 44 C54 37 51 32 51 26 C51 15 47 3 33 3Z" fill="#1d1d1f" stroke="#0c2238" stroke-width="2.5"/>
+      <path d="M8 46 C2 52 3 60 7 63 C10 58 12 52 13 48Z M58 46 C64 52 63 60 59 63 C56 58 54 52 53 48Z" fill="#1d1d1f"/>
+      <path d="M33 30 C22 30 15 43 15 55 C15 66 22 72 33 72 C44 72 51 66 51 55 C51 43 44 30 33 30Z" fill="#f4f1e8"/>
+      <ellipse cx="27" cy="16" rx="4.6" ry="6.2" fill="#fff"/><ellipse cx="39" cy="16" rx="4.6" ry="6.2" fill="#fff"/>
+      <ellipse cx="28.2" cy="17.5" rx="2.2" ry="3" fill="#111"/><ellipse cx="37.8" cy="17.5" rx="2.2" ry="3" fill="#111"/>
+      <circle cx="28.8" cy="16.3" r=".8" fill="#fff"/><circle cx="38.4" cy="16.3" r=".8" fill="#fff"/>
+      <path d="M23 25 C26 21.5 40 21.5 43 25 C42 29.5 37 31.5 33 31.5 C29 31.5 24 29.5 23 25Z" fill="#f6bd2b" stroke="#0c2238" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M25.5 26.5 C29 28.5 37 28.5 40.5 26.5" fill="none" stroke="#c98a12" stroke-width="1.2"/>
+      <path d="M8 73 C9 66 22 65 28 71 C27 77 11 78 8 73Z" fill="#f6bd2b" stroke="#0c2238" stroke-width="1.5"/>
+      <path d="M58 73 C57 66 44 65 38 71 C39 77 55 78 58 73Z" fill="#f6bd2b" stroke="#0c2238" stroke-width="1.5"/>
+      <rect class="gelo" x="3" y="8" width="60" height="70" rx="8" fill="#bfe8ffb3" stroke="#6fbbe6" stroke-width="2.5"/>
+      <path class="gelo" d="M10 16 L18 12 M48 64 L56 58" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    </svg>`;
+
   function montarSala() {
     const host = $("jogadores");
     host.replaceChildren();
@@ -278,7 +296,7 @@
       const humorNo = el("span", "humor");
       const fila = el("span", "fila-extra");
       const corpo = el("div");
-      corpo.innerHTML = PINGUIM;
+      corpo.innerHTML = usuario === "Bruno" ? TUX : PINGUIM;
       const status = el("span", "status");
       raiz.append(balao, humorNo, fila, corpo.firstElementChild, el("span", "nome", usuario), status);
       host.append(raiz);
