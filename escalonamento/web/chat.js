@@ -79,7 +79,7 @@
     cena: { corrida: CENA_CORRIDA.map((m) => ({ ...m })), escala: [] },
     quantum: { corrida: 2, escala: 4 },
     resultados: { corrida: null, escala: null },
-    frames: [], k: 0, timer: null, cores: new Map(), nos: new Map(), carregando: 0, linhaTotal: 1
+    visual: "png", frames: [], k: 0, timer: null, cores: new Map(), nos: new Map(), carregando: 0, linhaTotal: 1
   };
 
   // ---------- utilidades ----------
@@ -348,6 +348,43 @@
 
   // Cada personagem fixo tem a sua aparência; quem não está aqui (Eva, Você…) usa o pinguim padrão.
   const APARENCIAS = { Bruno: TUX, Ana: CADU, Carla: CLUB, Davi: PINGU };
+  // A mesma escalação em imagens de verdade (escalonamento/web/img), para comparar com os desenhos.
+  const FOTOS = { Bruno: "tux.png", Ana: "cadu.png", Carla: "club-penguin.png", Davi: "pingu.png" };
+  const ICONES_VISUAL = { desenho: "✏️ desenho", png: "🖼 PNG" };
+
+  function desenharPersonagem(usuario) {
+    if (estado.visual === "png" && FOTOS[usuario]) {
+      // O gelo do "congelado" fica por cima da foto, já que não dá para pintar dentro dela.
+      const foto = el("div", "pinguim foto");
+      const imagem = el("img");
+      imagem.src = "/static/img/" + FOTOS[usuario];
+      imagem.alt = "";
+      imagem.addEventListener("error", () => foto.replaceWith(svgDe(usuario)));
+      foto.append(imagem, el("span", "gelo"));
+      return foto;
+    }
+    return svgDe(usuario);
+  }
+  function svgDe(usuario) {
+    const corpo = el("div");
+    corpo.innerHTML = APARENCIAS[usuario] || PINGUIM;
+    return corpo.firstElementChild;
+  }
+
+  function lerVisual() {
+    try { return localStorage.getItem("sala-do-iglu-visual") === "desenho" ? "desenho" : "png"; } catch { return "png"; }
+  }
+  function trocarVisual(visual) {
+    estado.visual = visual;
+    try { localStorage.setItem("sala-do-iglu-visual", visual); } catch { /* sem armazenamento: só não lembra */ }
+    document.querySelectorAll("[data-visual]").forEach((botao) => {
+      botao.setAttribute("aria-pressed", String(botao.dataset.visual === visual));
+    });
+    if (estado.frames.length) {
+      montarSala();
+      desenhar(estado.k, false);
+    }
+  }
 
   function montarSala() {
     const host = $("jogadores");
@@ -366,10 +403,8 @@
       balao.append(fala, barra, rotulo);
       const humorNo = el("span", "humor");
       const fila = el("span", "fila-extra");
-      const corpo = el("div");
-      corpo.innerHTML = APARENCIAS[usuario] || PINGUIM;
       const status = el("span", "status");
-      raiz.append(balao, humorNo, fila, corpo.firstElementChild, el("span", "nome", usuario), status);
+      raiz.append(balao, humorNo, fila, desenharPersonagem(usuario), el("span", "nome", usuario), status);
       host.append(raiz);
       estado.nos.set(usuario, { raiz, balao, fala, barra, preenchido, rotulo, humorNo, fila, status, anterior: null });
     });
@@ -930,6 +965,10 @@
     mudouCena();
   });
 
+  document.querySelectorAll("[data-visual]").forEach((botao) => {
+    botao.addEventListener("click", () => trocarVisual(botao.dataset.visual));
+  });
+
   async function iniciar() {
     try {
       const resposta = await fetch("/api/cenarios");
@@ -942,6 +981,7 @@
       return;
     }
     desenharCenarios();
+    trocarVisual(lerVisual());
     $("chegada").value = 22;
     carregar(false);
   }

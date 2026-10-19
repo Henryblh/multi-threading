@@ -112,6 +112,11 @@ public final class Servidor {
                 "/chat", new Object[]{"escalonamento/web/chat.html", "text/html; charset=utf-8"},
                 "/static/chat.css", new Object[]{"escalonamento/web/chat.css", "text/css; charset=utf-8"},
                 "/static/chat.js", new Object[]{"escalonamento/web/chat.js", "application/javascript; charset=utf-8"});
+        // Imagens dos personagens da Sala do Iglu: só nomes simples, sem subpastas.
+        if (caminho.matches("/static/img/[a-z0-9-]+\\.png")) {
+            arquivos = Map.of(caminho, new Object[]{
+                    "escalonamento/web/img/" + caminho.substring("/static/img/".length()), "image/png"});
+        }
         Object[] arquivo = arquivos.get(caminho);
         Path alvo = arquivo == null ? null : raiz.resolve((String) arquivo[0]);
         if (alvo == null || !Files.isRegularFile(alvo)) {

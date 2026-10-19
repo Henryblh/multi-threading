@@ -63,6 +63,10 @@
             <label class="mini" id="campo-quantum">quantum <output id="quantum-output">4</output>
               <input id="quantum" type="range" min="1" max="20" value="4">
             </label>
+            <div class="mini alternar-visual" role="group" aria-label="Visual dos personagens">
+              <button type="button" data-visual="desenho" aria-pressed="false">✏️ desenho</button>
+              <button type="button" data-visual="png" aria-pressed="true">🖼 PNG</button>
+            </div>
           </div>
         </div>
 
@@ -123,6 +127,7 @@
 
       <footer class="rodape">
         <p>Por trás da sala está o mesmo backend Java dos laboratórios: nas fases 1 e 2, <code>SecaoCritica.java</code> (threads escrevendo num histórico compartilhado, sem e com semáforo de Dijkstra); nas outras, <code>Despachante.java</code> com a <code>Politica</code> de cada algoritmo. 1 palavra = 1 tick de CPU, e a mesma cena sempre gera o mesmo resultado.</p>
+        <p>Imagens dos personagens: Tux por Larry Ewing (lewing@isc.tamu.edu) e The GIMP, via Wikimedia Commons; Cadu Maverick (Sony Pictures Animation), Club Penguin (Disney) e Pingu (Mattel) vêm das wikis de fãs do Fandom e são usados aqui só para fins didáticos.</p>
       </footer>
     </main>
     <script src="/static/chat.js"></script>
