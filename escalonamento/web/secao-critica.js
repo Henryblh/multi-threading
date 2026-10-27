@@ -86,7 +86,7 @@
   }
   $("adicionar").addEventListener("click", () => {
     const ultima = estado.mensagens[estado.mensagens.length - 1];
-    estado.mensagens.push({ usuario: "Davi", chegada: ultima ? ultima.chegada + 1 : 0, texto: "to dentro" });
+    estado.mensagens.push({ usuario: "Pingu", chegada: ultima ? ultima.chegada + 1 : 0, texto: "noot noot" });
     renderMensagens();
   });
 
